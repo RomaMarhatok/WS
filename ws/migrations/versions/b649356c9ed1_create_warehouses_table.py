@@ -44,7 +44,7 @@ def upgrade() -> None:
             ["warehouse_worker_uuididf"],
             ["users.uuididf"],
             onupdate="CASCADE",
-            ondelete="SETNULL",
+            ondelete="SET NULL",
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("uuididf"),

@@ -12,7 +12,7 @@ class Warehouses(BaseModel):
         ForeignKey(
             "users.uuididf",
             onupdate="CASCADE",
-            ondelete="SETNULL",
+            ondelete="SET NULL",
         ),
         nullable=False,
     )
