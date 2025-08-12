@@ -25,7 +25,7 @@ def upgrade() -> None:
     op.create_table(
         "warehouses",
         sa.Column("warehouse_name", sa.String(length=200), nullable=False),
-        sa.Column("warehouse_worker_uuididf", sa.UUID(), nullable=False),
+        sa.Column("warehouse_worker_uuididf", sa.UUID(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("uuididf", sa.UUID(), nullable=False),
         sa.Column(

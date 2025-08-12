@@ -14,5 +14,5 @@ class Warehouses(BaseModel):
             onupdate="CASCADE",
             ondelete="SET NULL",
         ),
-        nullable=False,
+        nullable=True,
     )
