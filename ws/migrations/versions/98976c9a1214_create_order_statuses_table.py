@@ -1,4 +1,4 @@
-"""create order statuses items table
+"""create order statuses table
 
 Revision ID: 98976c9a1214
 Revises: fe9da64a6dda
