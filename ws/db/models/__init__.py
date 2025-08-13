@@ -7,3 +7,4 @@ from .items import Items  # noqa
 from .characteristics import Characteristics  # noqa
 from .characteristics_items import CharacteristicsItems  # noqa
 from .order_statuses import OrdertStatuses  # noqa
+from .orders import Orders  # noqa
