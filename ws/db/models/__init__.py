@@ -5,3 +5,4 @@ from .warehouses import Warehouses  # noqa
 from .item_types import ItemTypes  # noqa
 from .items import Items  # noqa
 from .characteristics import Characteristics  # noqa
+from .characteristics_items import CharacteristicsItems  # noqa
