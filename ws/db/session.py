@@ -5,12 +5,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncSession,
 )
+from sqlalchemy.pool import NullPool
 
 
 def get_sqlalchemy_async_engine() -> AsyncEngine:
-    return create_async_engine(
-        NeonDBConfig.DB_URL,
-    )
+    return create_async_engine(NeonDBConfig.DB_URL, poolclass=NullPool, echo=True)
 
 
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
