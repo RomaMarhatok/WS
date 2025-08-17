@@ -1,12 +1,9 @@
 import os
 import pytest
-import pytest_asyncio
-from typing import AsyncGenerator
 from pathlib import Path
 from types import SimpleNamespace
 from dotenv import load_dotenv
 from alembic.config import Config
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
 load_dotenv(override=True)
 
@@ -33,11 +30,6 @@ def make_alembic_config(
     return config
 
 
-@pytest.fixture(scope="session")
-def neon_db_url() -> str:
-    return os.environ["NEON_DB_URL"]
-
-
 def alembic_config_from_url(db_url: str | None = None) -> Config:
     cmd_options = SimpleNamespace(
         config="alembic.ini",
@@ -52,10 +44,3 @@ def alembic_config_from_url(db_url: str | None = None) -> Config:
 @pytest.fixture(scope="session")
 def alembic_config(neon_db_url) -> Config:
     return alembic_config_from_url(neon_db_url)
-
-
-@pytest_asyncio.fixture(scope="session")
-async def neon_async_engine(neon_db_url) -> AsyncGenerator[AsyncEngine, None]:
-    engine = create_async_engine(neon_db_url)
-    yield engine
-    await engine.dispose()
