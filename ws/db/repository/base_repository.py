@@ -3,11 +3,16 @@ from abc import ABC
 from typing import Generic
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-
+from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
 
 from ws.db.session import get_session_factory
-from ws.db.exceptions import EntityNotFoundException, EntityAlreadyExistException
+from ws.db.exceptions import (
+    EntityNotFoundException,
+    CouldNotCreateEntityException,
+    ForeignKeyNotExist,
+    EntityAlreadyExistException,
+)
 
 
 class GenericRepository(ABC, Generic[SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE]):
@@ -29,10 +34,14 @@ class GenericRepository(ABC, Generic[SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
                 return entity
             except IntegrityError as exc:
                 await session.rollback()
-                raise EntityAlreadyExistException(exc.orig)
-            except Exception as exc:
-                await session.rollback()
-                raise exc
+                error_msg: str = exc.args[0]
+                if "DETAIL" in error_msg:
+                    error_msg = error_msg[error_msg.find("DETAIL") :]
+                if isinstance(exc.orig.__cause__, ForeignKeyViolationError):
+                    raise ForeignKeyNotExist(error_msg)
+                if isinstance(exc.orig.__cause__, UniqueViolationError):
+                    raise EntityAlreadyExistException(error_msg)
+                raise CouldNotCreateEntityException from exc
 
     async def get_by_uuididf(self, uuididf: uuid.UUID) -> SQLALCHEMY_MODEL_TYPE:
         async with self.session_factory() as session:
@@ -67,7 +76,7 @@ class GenericRepository(ABC, Generic[SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
             entity = (await session.execute(q)).scalar_one_or_none()
             if entity is None:
                 raise EntityNotFoundException(
-                    f"Entity {self._model.__name__} with uUUID {uuididf} not found"
+                    f"Entity {self._model.__name__} with UUID {uuididf} not found"
                 )
             await session.delete(entity)
             await session.commit()
