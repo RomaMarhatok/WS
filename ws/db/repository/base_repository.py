@@ -3,10 +3,9 @@ from abc import ABC
 from typing import Generic
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
-
-from ws.db.session import get_session_factory
 from ws.db.exceptions import (
     EntityNotFoundException,
     CouldNotCreateEntityException,
@@ -17,8 +16,8 @@ from ws.db.exceptions import (
 
 class GenericRepository(ABC, Generic[SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE]):
 
-    def __init__(self):
-        self.session_factory = get_session_factory()
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self.session_factory = session_factory
 
     @property
     def _model(self) -> SQLALCHEMY_MODEL_TYPE:
