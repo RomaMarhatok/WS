@@ -14,9 +14,11 @@ def get_revisions() -> list[Script]:
 
 
 @pytest.mark.parametrize("revision", get_revisions())
-def test_migrations_stairway(alembic_config: Config, revision: Script):
-    upgrade(alembic_config, revision.revision)
+def test_migrations_stairway(
+    alembic_config_for_production_db: Config, revision: Script
+):
+    upgrade(alembic_config_for_production_db, revision.revision)
 
     # We need -1 for downgrading first migration (its down_revision is None)
-    downgrade(alembic_config, revision.down_revision or "-1")
-    upgrade(alembic_config, revision.revision)
+    downgrade(alembic_config_for_production_db, revision.down_revision or "-1")
+    upgrade(alembic_config_for_production_db, revision.revision)
