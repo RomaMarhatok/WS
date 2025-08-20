@@ -1,8 +1,14 @@
 import pytest
 import uuid
+import pytest_asyncio
 from pydantic import BaseModel
 from ws.test.test_repository.fake_db.fake_tables import FakeAnimalTable, FakeOwnerTable
 from ws.db.repository.base_repository import GenericRepository
+from ws.db.exceptions import (
+    EntityAlreadyExistException,
+    EntityNotFoundException,
+    ForeignKeyNotExist,
+)
 
 
 class AnimalDTO(BaseModel):
@@ -41,10 +47,18 @@ def animal_dto() -> AnimalDTO:
     return AnimalDTO(uuididf=uuid.uuid4(), animal_name="boby")
 
 
+@pytest_asyncio.fixture(scope="session")
+async def animal_db(
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+) -> FakeAnimalTable:
+    return await animal_repository.save(animal_dto)
+
+
 @pytest.fixture(scope="session")
-def onwer_dto(animal_dto: AnimalDTO) -> OwnerDTO:
+def owner_dto(animal_db: FakeAnimalTable) -> OwnerDTO:
     return OwnerDTO(
-        uuidf=uuid.uuid4(), owner_name="Tom", animal_uuidfidf=animal_dto.uuididf
+        uuididf=uuid.uuid4(), owner_name="Tom", animal_uuidfidf=animal_db.uuididf
     )
 
 
@@ -58,3 +72,111 @@ async def test_create_animal_entity(
     assert len(await animal_repository.get_batch()) == 1
     assert entity.uuididf == animal_dto.uuididf
     assert entity.animal_name == animal_dto.animal_name
+
+
+@pytest.mark.asyncio
+async def test_create_already_exist_animal_entity(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+    with pytest.raises(EntityAlreadyExistException):
+        await animal_repository.save(animal_dto)
+
+
+@pytest.mark.asyncio
+async def test_get_animal_by_uuididf(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+    entity = await animal_repository.get_by_uuididf(animal_dto.uuididf)
+    assert entity.uuididf == animal_dto.uuididf
+    assert entity.animal_name == animal_dto.animal_name
+
+
+@pytest.mark.asyncio
+async def test_get_not_exist_animal_by_uuididf(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+):
+    with pytest.raises(EntityNotFoundException):
+        await animal_repository.get_by_uuididf(uuididf=uuid.uuid4())
+
+
+@pytest.mark.asyncio
+async def test_update_animal(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+    animal_dto.animal_name = "foxy"
+    entity = await animal_repository.update(animal_dto)
+    assert entity.uuididf == animal_dto.uuididf
+    assert entity.animal_name == animal_dto.animal_name
+
+
+@pytest.mark.asyncio
+async def test_update_not_exist_entity(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+):
+    animal_dto = AnimalDTO(uuididf=uuid.uuid4(), animal_name="boby")
+    with pytest.raises(EntityNotFoundException):
+        await animal_repository.update(animal_dto)
+
+
+@pytest.mark.asyncio
+async def test_delete_animal_entity(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+
+    await animal_repository.delete(animal_dto.uuididf)
+    assert len(await animal_repository.get_batch()) == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_not_exist_animal_entity(
+    migrate_fake_migrations,
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+    with pytest.raises(EntityNotFoundException):
+        await animal_repository.delete(animal_dto.uuididf)
+    assert len(await animal_repository.get_batch()) == 0
+
+
+@pytest.mark.asyncio
+async def test_create_owner_entity(
+    owner_dto: OwnerDTO, owner_repository: GenericRepository[FakeOwnerTable, OwnerDTO]
+):
+
+    entity = await owner_repository.save(owner_dto)
+    assert len(await owner_repository.get_batch()) == 1
+    assert entity.uuididf == owner_dto.uuididf
+    assert entity.owner_name == owner_dto.owner_name
+
+
+@pytest.mark.asyncio
+async def test_create_owner_entity_with_not_exist_animal_uuididf(
+    owner_repository: GenericRepository[FakeOwnerTable, OwnerDTO],
+):
+    owner_dto = OwnerDTO(
+        uuididf=uuid.uuid4(), owner_name="Jhon", animal_uuidfidf=uuid.uuid4()
+    )
+    with pytest.raises(ForeignKeyNotExist):
+        await owner_repository.save(owner_dto)
+    assert len(await owner_repository.get_batch()) == 1
+
+
+@pytest.mark.asyncio
+async def test_update_owner_entity_with_not_exist_animal_uuididf(
+    owner_repository: GenericRepository[FakeOwnerTable, OwnerDTO],
+    owner_dto: OwnerDTO,
+):
+    owner_dto.animal_uuidfidf = uuid.uuid4()
+    with pytest.raises(ForeignKeyNotExist):
+        await owner_repository.update(owner_dto)
+    assert len(await owner_repository.get_batch()) == 1
