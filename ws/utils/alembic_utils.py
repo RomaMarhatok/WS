@@ -19,13 +19,10 @@ def make_alembic_config(
     # creating Config to gain access to alembic options
     config = Config(file_=cmd_opts.config, ini_section=cmd_opts.name, cmd_opts=cmd_opts)
     alembic_location = config.get_main_option("script_location")
-    print("SCRIPT LOCATION", alembic_location)
-    print("ROOT", alembic_location)
 
     # getting flags after -x tag in alembic command line interface
     # also creating absolute path for 'migrations' folder
     if not os.path.isabs(alembic_location):
-        print("IF")
         config.set_main_option(
             "script_location", os.path.join(project_root, alembic_location)
         )
@@ -34,10 +31,7 @@ def make_alembic_config(
             project_root,
             "ws\\test\\test_repository\\fake_db\\fake_alembic\\migrations",
         )
-        print("ROOT@", project_root)
-        print("alembic location", alembic_location)
         config.set_main_option("script_location", alembic_location)
-    print("SCRIPT LOCATION", config.get_main_option("script_location"))
 
     if cmd_opts.db_url:
         config.set_main_option("sqlalchemy.url", cmd_opts.db_url)
