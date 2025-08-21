@@ -25,9 +25,7 @@ class OwnerDTO(BaseModel):
 @pytest.fixture(scope="session")
 def animal_repository(async_session_maker_for_test):
     class AnimalRepository(GenericRepository[FakeAnimalTable, AnimalDTO]):
-        @property
-        def _model(self):
-            return FakeAnimalTable
+        pass
 
     return AnimalRepository(async_session_maker_for_test)
 
@@ -35,9 +33,7 @@ def animal_repository(async_session_maker_for_test):
 @pytest.fixture(scope="session")
 def owner_repository(async_session_maker_for_test):
     class OwnerRepository(GenericRepository[FakeOwnerTable, OwnerDTO]):
-        @property
-        def _model(self):
-            return FakeOwnerTable
+        pass
 
     return OwnerRepository(async_session_maker_for_test)
 

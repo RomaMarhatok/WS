@@ -1,6 +1,7 @@
 import uuid
 from abc import ABC
-from typing import Generic
+from functools import lru_cache
+from typing import Generic, get_args
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -17,11 +18,8 @@ from ws.db.exceptions import (
 class GenericRepository(ABC, Generic[SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE]):
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self._model, self._dto = self._get_entity_classes()
         self.session_factory = session_factory
-
-    @property
-    def _model(self) -> SQLALCHEMY_MODEL_TYPE:
-        raise NotImplementedError
 
     async def save(self, dto: PYDANTIC_SCHEMA_TYPE) -> SQLALCHEMY_MODEL_TYPE:
         async with self.session_factory() as session:
@@ -90,3 +88,10 @@ class GenericRepository(ABC, Generic[SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
     async def get_batch(self) -> list[SQLALCHEMY_MODEL_TYPE]:
         async with self.session_factory() as session:
             return (await session.execute(select(self._model))).scalars().all()
+
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _get_entity_classes(cls):
+        generic_types_of_repo = getattr(cls, "__orig_bases__")[0]
+        sqlachemy_entity_class, pydantic_entity_class = get_args(generic_types_of_repo)
+        return sqlachemy_entity_class, pydantic_entity_class

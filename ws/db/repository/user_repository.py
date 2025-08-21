@@ -4,6 +4,4 @@ from ws.db.repository.base_repository import GenericRepository
 
 
 class UserRepository(GenericRepository[Users, UserDTO]):
-    @property
-    def _model(self):
-        return Users
+    pass

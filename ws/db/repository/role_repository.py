@@ -7,10 +7,6 @@ from ws.dto import RoleDTO
 
 class RoleRepository(GenericRepository[Roles, RoleDTO]):
 
-    @property
-    def _model(self):
-        return Roles
-
     async def get_by_name(self, name: str) -> Roles:
         async with self.session_factory() as session:
             stmt = select(self._model).where(self._model.rolename == name)
