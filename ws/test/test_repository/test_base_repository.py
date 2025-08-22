@@ -27,7 +27,7 @@ def animal_repository(async_session_maker_for_test):
     class AnimalRepository(GenericRepository[FakeAnimalTable, AnimalDTO]):
         pass
 
-    return AnimalRepository(async_session_maker_for_test)
+    return AnimalRepository(async_session_maker_for_test())
 
 
 @pytest.fixture(scope="session")
@@ -35,7 +35,7 @@ def owner_repository(async_session_maker_for_test):
     class OwnerRepository(GenericRepository[FakeOwnerTable, OwnerDTO]):
         pass
 
-    return OwnerRepository(async_session_maker_for_test)
+    return OwnerRepository(async_session_maker_for_test())
 
 
 @pytest.fixture(scope="session")
@@ -82,7 +82,6 @@ async def test_create_already_exist_animal_entity(
 
 @pytest.mark.asyncio
 async def test_get_animal_by_uuididf(
-    migrate_fake_migrations,
     animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
     animal_dto: AnimalDTO,
 ):
@@ -92,8 +91,30 @@ async def test_get_animal_by_uuididf(
 
 
 @pytest.mark.asyncio
+async def test_get_animal_by_name(
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+    entity = await animal_repository.get_by_name(animal_dto.animal_name)
+    assert entity.uuididf == animal_dto.uuididf
+    assert entity.animal_name == animal_dto.animal_name
+
+
+@pytest.mark.asyncio
+async def test_get_animal_by_name_with_field(
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    animal_dto: AnimalDTO,
+):
+
+    entity = await animal_repository.get_by_name(
+        animal_dto.animal_name, name_field=FakeAnimalTable.animal_name
+    )
+    assert entity.uuididf == animal_dto.uuididf
+    assert entity.animal_name == animal_dto.animal_name
+
+
+@pytest.mark.asyncio
 async def test_get_not_exist_animal_by_uuididf(
-    migrate_fake_migrations,
     animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
 ):
     with pytest.raises(EntityNotFoundException):
@@ -101,8 +122,15 @@ async def test_get_not_exist_animal_by_uuididf(
 
 
 @pytest.mark.asyncio
+async def test_get_not_exist_animal_by_name(
+    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+):
+    with pytest.raises(EntityNotFoundException):
+        await animal_repository.get_by_name(name="Cat")
+
+
+@pytest.mark.asyncio
 async def test_update_animal(
-    migrate_fake_migrations,
     animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
     animal_dto: AnimalDTO,
 ):
@@ -114,7 +142,6 @@ async def test_update_animal(
 
 @pytest.mark.asyncio
 async def test_update_not_exist_entity(
-    migrate_fake_migrations,
     animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
 ):
     animal_dto = AnimalDTO(uuididf=uuid.uuid4(), animal_name="boby")
@@ -124,7 +151,6 @@ async def test_update_not_exist_entity(
 
 @pytest.mark.asyncio
 async def test_delete_animal_entity(
-    migrate_fake_migrations,
     animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
     animal_dto: AnimalDTO,
 ):
@@ -135,7 +161,6 @@ async def test_delete_animal_entity(
 
 @pytest.mark.asyncio
 async def test_delete_not_exist_animal_entity(
-    migrate_fake_migrations,
     animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
     animal_dto: AnimalDTO,
 ):
