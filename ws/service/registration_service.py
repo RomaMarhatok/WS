@@ -14,8 +14,8 @@ from ws.utils.security import get_password_hash
 
 class RegistrationService:
     def __init__(self):
-        self.user_repo = UserRepository(get_session_factory())
-        self.role_repo = RoleRepository(get_session_factory())
+        self.user_repo = UserRepository(get_session_factory()())
+        self.role_repo = RoleRepository(get_session_factory()())
 
     async def registration(self, credentials: POSTUserSchema) -> JSONResponse:
         try:
