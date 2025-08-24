@@ -1,8 +1,10 @@
 import pytest
 from fastapi.exceptions import HTTPException
 from ws.service.registration_service import RegistrationService
+from ws.service.auth_service import AuthService
 from ws.api.schemas.user import POSTUserSchema
 from ws.api.exceptions import HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST
+from ws.db.uow.base import BaseUOW
 
 
 @pytest.fixture(scope="session")
@@ -11,8 +13,18 @@ def post_user_schema():
 
 
 @pytest.fixture(scope="session")
-def registration_service():
-    return RegistrationService()
+def uow(async_session_maker):
+    return BaseUOW(async_session_maker)
+
+
+@pytest.fixture(scope="session")
+def registration_service(uow):
+    return RegistrationService(uow)
+
+
+@pytest.fixture(scope="session")
+def authentication_service(uow):
+    return AuthService(uow)
 
 
 @pytest.mark.asyncio
@@ -33,3 +45,11 @@ async def test_register_already_exist_user(
             e.value.status_code == HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST.status_code
         )
         assert e.value.detail == HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST.detail
+
+
+@pytest.mark.asyncio
+async def test_auth_user(
+    authentication_service: AuthService, post_user_schema: POSTUserSchema
+):
+    response = await authentication_service.auth(post_user_schema)
+    assert response.status_code == 200

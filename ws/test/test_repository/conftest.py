@@ -1,22 +1,11 @@
 import pytest
 import asyncio
 from typing import Generator, Any
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
 from alembic.command import upgrade, downgrade
 from alembic.config import Config
 from ws.utils.alembic_utils import alembic_config_from_url
 from sqlalchemy.pool import NullPool
-
-
-@pytest.fixture(scope="session")
-def async_session_maker_for_test(neon_db_url_for_test):
-    engine = create_async_engine(neon_db_url_for_test, poolclass=NullPool, echo=True)
-    session_factory = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    return session_factory
 
 
 @pytest.fixture(scope="session")
