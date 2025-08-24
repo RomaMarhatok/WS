@@ -1,7 +1,7 @@
 import uuid
 from functools import lru_cache
 from typing import Generic, get_args
-from sqlalchemy import select, update, Select
+from sqlalchemy import update, Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
@@ -77,7 +77,7 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
 
     async def get_batch(self) -> list[SQLALCHEMY_MODEL_TYPE]:
         async with self.session:
-            return (await self.session.execute(select(self.model))).scalars().all()
+            return (await self.session.execute(Select(self.model))).scalars().all()
 
     async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
         if len(kwargs.items()) != 1:
@@ -96,8 +96,27 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
                 return entity
         except AttributeError:
             raise AttributeError(
-                f"Model {self.model.__name__} doesn't have {field} field"
+                f"Model {self.model.__name__} doesn't have how field '{field}'"
             )
+
+    async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
+        if len(kwargs.items()) < 1:
+            raise AttributeError(
+                "find method must accept at least one keyword argument."
+                + "Or use get_batch() -> for get all enteties "
+                + "Or use get() method for getting element by one field"
+            )
+        filters = []
+        for k, v in kwargs.items():
+            try:
+                filters.append(getattr(self.model, k) == v)
+            except AttributeError:
+                raise AttributeError(
+                    f"Model {self.model.__name__} doesn't have field how '{k}' "
+                )
+        stmt = Select(self.model).where(*filters)
+        entities = (await self.session.execute(stmt)).scalars().all()
+        return entities
 
     @classmethod
     @lru_cache(maxsize=1)

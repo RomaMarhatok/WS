@@ -61,7 +61,7 @@ def owner_dto(animal_db: FakeAnimalTable) -> OwnerDTO:
 @pytest.mark.asyncio
 async def test_create_animal_entity(
     migrate_fake_migrations,
-    animal_repository,
+    animal_repository: GenericRepository[FakeAnimalTable],
     animal_dto: AnimalDTO,
 ):
     entity = await animal_repository.save(animal_dto)
@@ -140,6 +140,38 @@ async def test_get_animal_by_not_exist_field(
 ):
     with pytest.raises(AttributeError):
         await animal_repository.get(not_exist_field="Cat")
+
+
+@pytest.mark.asyncio
+async def test_find_animal_use_find_method(
+    animal_repository: GenericRepository[FakeAnimalTable],
+    animal_dto: AnimalDTO,
+):
+    entities = await animal_repository.find(
+        animal_name=animal_dto.animal_name, uuididf=animal_dto.uuididf
+    )
+    assert len(entities) != 0
+    assert entities[0].uuididf == animal_dto.uuididf
+    assert entities[0].animal_name == animal_dto.animal_name
+
+
+@pytest.mark.asyncio
+async def test_find_animal_with_not_exist_fields_method(
+    animal_repository: GenericRepository[FakeAnimalTable],
+    animal_dto: AnimalDTO,
+):
+    with pytest.raises(AttributeError):
+        await animal_repository.find(
+            not_exist_field=animal_dto.animal_name, uuididf=animal_dto.uuididf
+        )
+
+
+@pytest.mark.asyncio
+async def test_find_animal_without_argument(
+    animal_repository: GenericRepository[FakeAnimalTable],
+):
+    with pytest.raises(AttributeError):
+        await animal_repository.find()
 
 
 @pytest.mark.asyncio
