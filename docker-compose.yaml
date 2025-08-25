@@ -1,0 +1,26 @@
+name: WS_DOCKER
+services:
+  backend:
+    restart: always
+    container_name: fastapi-ws-backend
+    build:
+      context: .
+      dockerfile: ./ws/Dockerfile
+    ports:
+      - 8888:5001
+    environment:
+      - DB_HOST=postgres_db
+    env_file:
+      - .env
+    depends_on:
+      - db
+  db:
+    image: postgres
+    restart: always
+    container_name: postgres-ws-db
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:?err}
+      - POSTGRES_USER=${POSTGRES_USER:?err}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?err}
