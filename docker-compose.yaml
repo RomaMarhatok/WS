@@ -1,26 +1,46 @@
 name: WS_DOCKER
 services:
   backend:
-    restart: always
+    restart: on-failure
     container_name: fastapi-ws-backend
     build:
       context: .
       dockerfile: ./ws/Dockerfile
+    volumes:
+      - .:/ws
     ports:
       - 8888:5001
     environment:
-      - DB_HOST=postgres_db
+      - DB_HOST=db
+      - TEST_DB_HOST=test-db
     env_file:
       - .env
     depends_on:
       - db
+      - test-db
   db:
     image: postgres
-    restart: always
+    restart: on-failure
     container_name: postgres-ws-db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - 5432:5432
+      - ${DB_PORT:?err}:5432
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:?err}
-      - POSTGRES_USER=${POSTGRES_USER:?err}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?err}
+      - POSTGRES_DB=${DB_NAME:?err}
+      - POSTGRES_USER=${DB_USER:?err}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?err}
+      - POSTGRES_PORT=${DB_PORT:?err}
+  test-db:
+    image: postgres
+    restart: on-failure
+    container_name: psql-for-test
+    ports:
+      - ${DB_PORT_FOR_TEST:?err}:5432
+    environment:
+      - POSTGRES_DB=${TEST_DB_NAME:?err}
+      - POSTGRES_USER=${DB_USER:?err}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?err}
+      - POSTGRES_PORT=${DB_PORT_FOR_TEST:?err}
+volumes:
+  pgdata:
