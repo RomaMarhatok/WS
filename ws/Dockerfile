@@ -1,6 +1,6 @@
 FROM python:3.13-slim
 
-WORKDIR /ws_backend
+WORKDIR /ws
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONUNBUFFERED=1 \
@@ -20,5 +20,6 @@ RUN pip install -U pip \
 
 COPY ./ ./
 EXPOSE 5001
-RUN find . -print
-ENTRYPOINT [ "sh","./ws/entrypoint.sh" ]
+CMD ["tail", "-f", "/dev/null"]
+
+# ENTRYPOINT [ "sh","./ws/entrypoint.sh" ]
