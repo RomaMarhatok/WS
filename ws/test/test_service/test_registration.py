@@ -13,8 +13,8 @@ def post_user_schema():
 
 
 @pytest.fixture(scope="session")
-def uow(async_session_maker):
-    return BaseUOW(async_session_maker)
+def uow(async_session_factory):
+    return BaseUOW(async_session_factory)
 
 
 @pytest.fixture(scope="session")

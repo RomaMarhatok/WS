@@ -26,12 +26,6 @@ def make_alembic_config(
         config.set_main_option(
             "script_location", os.path.join(project_root, alembic_location)
         )
-    if cmd_opts.testing:
-        alembic_location = os.path.join(
-            project_root,
-            "ws\\test\\test_repository\\fake_db\\fake_alembic\\migrations",
-        )
-        config.set_main_option("script_location", alembic_location)
 
     if cmd_opts.db_url:
         config.set_main_option("sqlalchemy.url", cmd_opts.db_url)
@@ -42,13 +36,11 @@ def alembic_config_from_url(
     alembic_ini_file_name: str = "alembic.ini",
     section_name_in_alembic_ini_file: str = "alembic",
     db_url: str | None = None,
-    testing: bool = False,
 ) -> Config:
     cmd_options = SimpleNamespace(
         config=alembic_ini_file_name,
         name=section_name_in_alembic_ini_file,
         db_url=db_url,
-        testing=testing,
         raiseerr=False,
         x=None,
     )

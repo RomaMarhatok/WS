@@ -1,4 +1,4 @@
-from ws.config import NeonDBConfig
+from ws.config import AbstractDBConfig
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncEngine,
@@ -8,12 +8,16 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 
-def get_sqlalchemy_async_engine() -> AsyncEngine:
-    return create_async_engine(NeonDBConfig.DB_URL, poolclass=NullPool, echo=True)
+def get_async_engine(db_config: AbstractDBConfig) -> AsyncEngine:
+    return create_async_engine(
+        db_config.get_connection_string(), poolclass=NullPool, echo=True
+    )
 
 
-def get_session_factory() -> async_sessionmaker[AsyncSession]:
-    async_neon_engine = get_sqlalchemy_async_engine()
+def get_session_factory(
+    db_config: AbstractDBConfig,
+) -> async_sessionmaker[AsyncSession]:
+    async_neon_engine = get_async_engine(db_config=db_config)
     session_factory = async_sessionmaker(
         bind=async_neon_engine,
         class_=AsyncSession,

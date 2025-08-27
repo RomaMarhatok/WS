@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from alembic import context
-from ws.config import NeonDBConfig
+from ws.config import PSQLDBConfig
 from ws.db.models import BaseModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", NeonDBConfig.DB_URL)
+config.set_main_option("sqlalchemy.url", PSQLDBConfig().get_connection_string())
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
