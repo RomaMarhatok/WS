@@ -1,6 +1,11 @@
 import pytest
 import uuid
 import pytest_asyncio
+import asyncio
+from sqlalchemy import Inspector, inspect
+from sqlalchemy.ext.asyncio import AsyncEngine
+from alembic.config import Config
+from alembic.command import upgrade, downgrade
 from ws.db.repository.base_repository import GenericRepository
 from ws.db.exceptions import (
     EntityAlreadyExistException,
@@ -11,12 +16,27 @@ from ws.db.models import Roles, Users
 from ws.dto import UserDTO, RoleDTO
 
 
+@pytest.mark.asyncio
+async def test_apply_migrations(alembic_config: Config, async_engine: AsyncEngine):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, upgrade, alembic_config, "head")
+
+    async with async_engine.connect() as conn:
+
+        def _get_talbe_names(sync_conn):
+            inspector: Inspector = inspect(sync_conn)
+            return inspector.get_table_names()
+
+        tables = await conn.run_sync(_get_talbe_names)
+        assert len(tables) != 1
+
+
 @pytest.fixture(scope="session")
 def role_repository(async_session_factory):
     class RoleRepository(GenericRepository[Roles]):
         pass
 
-    return RoleRepository(async_session_factory())
+    return RoleRepository(async_session_factory)
 
 
 @pytest.fixture(scope="session")
@@ -24,7 +44,7 @@ def user_repository(async_session_factory):
     class UserRepository(GenericRepository[Users]):
         pass
 
-    return UserRepository(async_session_factory())
+    return UserRepository(async_session_factory)
 
 
 @pytest.fixture(scope="session")
@@ -46,6 +66,7 @@ def user_dto(role_from_db: Roles) -> UserDTO:
         uuididf=uuid.uuid4(),
         username="Tom",
         role_uuididf=role_from_db.uuididf,
+        password="password",
     )
 
 
@@ -219,7 +240,12 @@ async def test_create_user_entity(
 async def test_create_user_entity_with_not_exist_role_uuididf(
     user_repository: GenericRepository[Users],
 ):
-    user_dto = UserDTO(uuididf=uuid.uuid4(), username="Jhon", role_uuididf=uuid.uuid4())
+    user_dto = UserDTO(
+        uuididf=uuid.uuid4(),
+        username="Jhon",
+        password="hello world",
+        role_uuididf=uuid.uuid4(),
+    )
     with pytest.raises(ForeignKeyNotExist):
         await user_repository.save(user_dto)
     assert len(await user_repository.get_batch()) == 1
@@ -234,3 +260,17 @@ async def test_update_user_entity_with_not_exist_role_uuididf(
     with pytest.raises(ForeignKeyNotExist):
         await user_repository.update(user_dto)
     assert len(await user_repository.get_batch()) == 1
+
+
+@pytest.mark.asyncio
+async def test_downgrade_migrations(alembic_config: Config, async_engine: AsyncEngine):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, downgrade, alembic_config, "base")
+    async with async_engine.connect() as conn:
+
+        def _get_table_names(sync_conn):
+            inspector: Inspector = inspect(sync_conn)
+            return inspector.get_table_names()
+
+        tables = await conn.run_sync(_get_table_names)
+        assert len(tables) == 1

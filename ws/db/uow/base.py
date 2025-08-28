@@ -9,4 +9,4 @@ class BaseUOW:
 
     @property
     def users(self):
-        return UserCommandsManager(self.session_factory())
+        return UserCommandsManager(self.session_factory)
