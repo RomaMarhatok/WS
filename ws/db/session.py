@@ -17,9 +17,9 @@ def get_async_engine(db_config: AbstractDBConfig) -> AsyncEngine:
 def get_session_factory(
     db_config: AbstractDBConfig,
 ) -> async_sessionmaker[AsyncSession]:
-    async_neon_engine = get_async_engine(db_config=db_config)
+    async_engine = get_async_engine(db_config=db_config)
     session_factory = async_sessionmaker(
-        bind=async_neon_engine,
+        bind=async_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
