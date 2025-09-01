@@ -4,7 +4,7 @@ from sqlalchemy import UUID, Integer, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped
 
 
-class WrehouseItems(BaseModel):
+class WarehouseItems(BaseModel):
     __tablename__ = "warehouses_items"
     warehouses_uuididf: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
