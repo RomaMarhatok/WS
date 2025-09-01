@@ -140,9 +140,13 @@ async def test_get_not_exist_role_by_name(
 @pytest.mark.asyncio
 async def test_multiply_kwarg_in_get_method(
     role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
 ):
-    with pytest.raises(ValueError):
-        await role_repository.get(rolename="Cat", uuididf=uuid.uuid4())
+    entity = await role_repository.get(
+        rolename=role_dto.rolename, uuididf=role_dto.uuididf
+    )
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
 
 
 @pytest.mark.asyncio
@@ -181,7 +185,7 @@ async def test_find_role_with_not_exist_fields_method(
 async def test_find_role_without_argument(
     role_repository: GenericRepository[Roles],
 ):
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError):
         await role_repository.find()
 
 

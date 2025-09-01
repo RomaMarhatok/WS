@@ -75,45 +75,40 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             await session.delete(entity)
             await session.commit()
 
-    async def get_batch(self) -> list[SQLALCHEMY_MODEL_TYPE]:
+    async def get_batch(
+        self, limit: int = 10, offset: int = 0
+    ) -> list[SQLALCHEMY_MODEL_TYPE]:
         async with self.session_factory() as session:
-            return (await session.execute(Select(self.model))).scalars().all()
+            stmt = Select(self.model).limit(limit).offset(offset)
+            return (await session.execute(stmt)).scalars().all()
 
-    async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
-        if len(kwargs.items()) != 1:
-            raise ValueError(f"Method {self.get.__name__} accept only one argument")
-        field, value = list(kwargs.items())[0]
-        try:
-            async with self.session_factory() as session:
-                model_field = getattr(self.model, field)
-                stmt = Select(self.model).where(model_field == value)
-                entity = (await session.execute(stmt)).scalar_one_or_none()
-                if entity is None:
-                    raise EntityNotFoundException(
-                        f"Entity {self.model.__name__}"
-                        + f" with {model_field} == {value} not found"
-                    )
-                return entity
-        except AttributeError:
-            raise AttributeError(
-                f"Model {self.model.__name__} doesn't have how field '{field}'"
-            )
-
-    async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
-        if len(kwargs.items()) < 1:
-            raise AttributeError(
-                "find method must accept at least one keyword argument."
-                + "Or use get_batch() -> for get all enteties "
-                + "Or use get() method for getting element by one field"
-            )
+    async def _create_filters(self, **kwargs) -> list:
+        if len(kwargs.items()) == 0:
+            raise ValueError("Expected at least on keyword argument")
         filters = []
         for k, v in kwargs.items():
             try:
                 filters.append(getattr(self.model, k) == v)
             except AttributeError:
                 raise AttributeError(
-                    f"Model {self.model.__name__} doesn't have field how '{k}' "
+                    f"Model {self.model.__name__} doesn't have how field '{k}'"
                 )
+        return filters
+
+    async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
+        filters = await self._create_filters(**kwargs)
+        async with self.session_factory() as session:
+            stmt = Select(self.model).where(*filters)
+            entity = (await session.execute(stmt)).scalar_one_or_none()
+            if entity is None:
+                raise EntityNotFoundException(
+                    f"Entity {self.model.__name__}"
+                    + f" with values {filters} not found"
+                )
+            return entity
+
+    async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
+        filters = await self._create_filters(**kwargs)
         async with self.session_factory() as session:
             stmt = Select(self.model).where(*filters)
             entities = (await session.execute(stmt)).scalars().all()
