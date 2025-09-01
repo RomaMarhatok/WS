@@ -1,8 +1,8 @@
 import uuid
-from ws.dto.base import BaseDTO
+from ws.dto.base import BaseDBModelDTO
 
 
-class UserDTO(BaseDTO):
+class UserDTO(BaseDBModelDTO):
     uuididf: uuid.UUID
     username: str
     password: str
