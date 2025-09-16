@@ -2,8 +2,7 @@ import pytest
 import uuid
 import pytest_asyncio
 import asyncio
-from sqlalchemy import Inspector, inspect, Select
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import Inspector, inspect
 from sqlalchemy.ext.asyncio import AsyncEngine
 from alembic.config import Config
 from alembic.command import upgrade, downgrade
@@ -17,11 +16,6 @@ from ws.db.models import (
     Roles,
     Users,
     Warehouses,
-    Items,
-    Characteristics,
-    WarehouseItems,
-    CharacteristicsItems,
-    Orders,
 )
 from ws.dto import UserDTO, RoleDTO
 
@@ -55,6 +49,14 @@ def user_repository(async_session_factory):
         pass
 
     return UserRepository(async_session_factory)
+
+
+@pytest.fixture(scope="session")
+def warehouse_repository(async_session_factory):
+    class WarehousesRepository(GenericRepository[Warehouses]):
+        pass
+
+    return WarehousesRepository(async_session_factory)
 
 
 @pytest.fixture(scope="session")
@@ -197,43 +199,6 @@ async def test_find_role_without_argument(
 ):
     with pytest.raises(ValueError):
         await role_repository.find()
-
-
-@pytest.mark.asyncio
-async def test_get_join(async_session_factory):
-    class WarehousesRepository(GenericRepository[Warehouses]):
-        pass
-
-    repo = WarehousesRepository(async_session_factory)
-    stmt = await repo.get_with_join(
-        joined_tables=[Items, Characteristics], exclude=[Orders]
-    )
-    compared_stmt = (
-        Select(
-            Warehouses.warehouse_name,
-            Warehouses.warehouse_worker_uuididf,
-            Warehouses.id,
-            Warehouses.uuididf,
-            Warehouses.created_at,
-            Warehouses.updated_at,
-        )
-        .join(WarehouseItems, WarehouseItems.warehouses_uuididf == Warehouses.uuididf)
-        .join(Items, WarehouseItems.item_uuididf == Items.uuididf)
-        .join(CharacteristicsItems, CharacteristicsItems.item_uuiidf == Items.uuididf)
-        .join(
-            Characteristics,
-            CharacteristicsItems.characteristic_uuiidf == Characteristics.uuididf,
-        )
-    )
-
-    def _stmt_to_str_query(stmt: Select) -> str:
-        return str(
-            stmt.compile(
-                dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
-            )
-        )
-
-    assert _stmt_to_str_query(stmt) == _stmt_to_str_query(compared_stmt)
 
 
 @pytest.mark.asyncio

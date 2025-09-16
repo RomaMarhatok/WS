@@ -2,6 +2,7 @@ import os
 from abc import ABC, abstractmethod
 from dotenv import load_dotenv
 from dataclasses import dataclass
+from datetime import timedelta
 
 load_dotenv(override=True)
 
@@ -9,6 +10,8 @@ load_dotenv(override=True)
 class JWTTokenConfig:
     SECRET_KEY = os.environ["SECRET_KEY"]
     ALGORITHM = os.environ["ALGORITHM"]
+    ACCESS_TOKEN_TIMEDELTA = timedelta(minutes=30)
+    REFRESH_TOKEN_TIMEDELTA = timedelta(days=1)
 
 
 # must create some type of singleton which can share state between env.py and conftest.py

@@ -1,9 +1,9 @@
 import pytest
 from fastapi.exceptions import HTTPException
-from ws.service.registration_service import RegistrationService
-from ws.service.auth_service import AuthService
+from ws.service.auth.registration_service import RegistrationService
+from ws.service.auth.auth_service import AuthService
 from ws.api.schemas.user import POSTUserSchema
-from ws.api.exceptions import HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST
+from ws.api.exceptions.user import HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST
 from ws.db.uow.base import BaseUOW
 
 

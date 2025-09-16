@@ -19,28 +19,28 @@ class BaseDTO(BaseModel, ABC):
     def _get_functions(cls, instance: Any) -> tuple[list[str], Callable]:
         if issubclass(instance, SQLBaseModel):
             return (
-                cls._get_sqlalchemy_instance_fields(instance),
-                cls._get_attr_from_object_instance,
+                cls._get_instance_fields(instance),
+                cls._get_instance_attr,
             )
         return (
-            cls._get_dict_instance_fields(instance),
-            cls._get_attr_from_dict_instance,
+            cls._get_dict_keys(instance),
+            cls._get_dict_value,
         )
 
     @classmethod
-    def _get_sqlalchemy_instance_fields(cls, instance: SQLBaseModel) -> list[str]:
+    def _get_instance_fields(cls, instance: SQLBaseModel) -> list[str]:
         return instance.__table__.columns.keys()
 
     @classmethod
-    def _get_attr_from_object_instance(cls, instance: SQLBaseModel, k: str):
+    def _get_instance_attr(cls, instance: SQLBaseModel, k: str):
         return getattr(instance, k)
 
     @classmethod
-    def _get_dict_instance_fields(cls, instance: dict) -> list[str]:
+    def _get_dict_keys(cls, instance: dict) -> list[str]:
         return instance.keys()
 
     @classmethod
-    def _get_attr_from_dict_instance(cls, instance: dict, k: str) -> list[str]:
+    def _get_dict_value(cls, instance: dict, k: str) -> list[str]:
         return instance.get(k)
 
 
