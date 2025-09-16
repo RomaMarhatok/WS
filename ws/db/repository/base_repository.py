@@ -13,15 +13,14 @@ from ws.db.exceptions import (
     ForeignKeyNotExist,
     EntityAlreadyExistException,
 )
-from ws.db.reflections.reflector import JoinReflector, UnionTable
 
 
 class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self._stmt = None
         self.model = self._get_entity_class()
         self.session_factory = session_factory
-        self.reflector = JoinReflector(self.session_factory().bind, self.model.__base__)
 
     async def save(self, dto: PYDANTIC_SCHEMA_TYPE) -> SQLALCHEMY_MODEL_TYPE:
         async with self.session_factory() as session:
@@ -108,119 +107,6 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
                     + f" with values {filters} not found"
                 )
             return entity
-
-    async def _swap_inner_join(
-        self,
-        stmt: Select,
-        the_attached_table: Type[SQLALCHEMY_MODEL_TYPE],
-        the_table_to_which_is_attached: Type[SQLALCHEMY_MODEL_TYPE],
-        union_table_reflection: UnionTable,
-        get_table_name_from_attached_table: bool = False,
-    ) -> Select:
-        tablename_for_getting_fields = (
-            the_table_to_which_is_attached.__tablename__
-            if not get_table_name_from_attached_table
-            else the_attached_table.__tablename__
-        )
-        return stmt.join(
-            the_attached_table,
-            await union_table_reflection.get_orm_constrained_filed(
-                tablename_for_getting_fields
-            )
-            == (
-                await union_table_reflection.get_linked_table(
-                    tablename_for_getting_fields
-                )
-            ).get_orm_referred_column_filed(),
-        )
-
-    async def compare_join_stmt(
-        self,
-        joined_tables: list[Type[SQLALCHEMY_MODEL_TYPE]],
-        exclude: list[Type[SQLALCHEMY_MODEL_TYPE]] = None,
-    ) -> Select:
-        """This function try to create this type of sql stmt
-        SELECT
-                warehouses.warehouse_name,
-                warehouses.warehouse_worker_uuididf,
-                warehouses.id,
-                warehouses.uuididf,
-                warehouses.created_at,
-                warehouses.updated_at,
-                items.nomination,
-                items.description,
-                items.type,
-                items.id AS id_1,
-                items.uuididf AS uuididf_1,
-                items.created_at AS created_at_1,
-                items.updated_at AS updated_at_1,
-                characteristics.name,
-                characteristics.id AS id_2,
-                characteristics.uuididf AS uuididf_2,
-                characteristics.created_at AS created_at_2,
-                characteristics.updated_at AS updated_at_2
-            FROM warehouses
-            JOIN warehouses_items ON
-                warehouses_items.warehouses_uuididf = warehouses.uuididf
-            JOIN items ON warehouses_items.item_uuididf = items.uuididf
-            JOIN characteristics_items ON
-                characteristics_items.item_uuiidf = items.uuididf
-            JOIN characteristics ON
-                characteristics_items.characteristic_uuiidf = characteristics.uuididf
-        """
-        # add the self.mode from include it in algorithm
-        joined_tables.insert(0, self.model)
-        # getting all reflection which include intersaction with joined_models
-        reflections = [
-            fk_ref
-            for fk_ref in await self.reflector.get_foreign_keys_reflection()
-            if len(
-                (await fk_ref.get_linked_table_models()).intersection(
-                    set(joined_tables)
-                )
-            )
-            >= 2
-            and fk_ref.union_orm_model not in exclude
-        ]
-        # create base stmt
-        # create first step of stmt Select * from joined_tables
-        stmt = Select(*joined_tables)
-        already_attched_tables_list = set()
-        already_attched_union_tables = set()
-        for bearing_table in joined_tables:
-            if len(already_attched_tables_list) == len(set(joined_tables)):
-                break
-            for union_table in reflections:
-                # adding union table to stmt
-                if (
-                    bearing_table in union_table
-                    and union_table not in already_attched_union_tables
-                ):
-                    stmt = await self._swap_inner_join(
-                        stmt,
-                        union_table.union_orm_model,
-                        bearing_table,
-                        union_table,
-                    )
-
-                    already_attched_tables_list.add(bearing_table)
-                    # if union table has intersaction with joined_models also join it
-                    intersection_of_linked_tables = (
-                        set(joined_tables).difference(already_attched_tables_list)
-                    ).intersection(await union_table.get_linked_table_models())
-                    if len(intersection_of_linked_tables) != 0:
-                        # adding tables from 'joined_tables' if union table has it
-                        for linked_table in intersection_of_linked_tables:
-                            stmt = await self._swap_inner_join(
-                                stmt,
-                                linked_table,
-                                union_table.union_orm_model,
-                                union_table,
-                                get_table_name_from_attached_table=True,
-                            )
-                            already_attched_tables_list.add(linked_table)
-                    already_attched_union_tables.add(union_table)
-        return stmt
 
     async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
         filters = await self._create_filters(**kwargs)
