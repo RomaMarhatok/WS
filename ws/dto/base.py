@@ -8,16 +8,16 @@ from pydantic import BaseModel
 class BaseDTO(BaseModel, ABC):
     @classmethod
     def from_instance(cls, instance: SQLBaseModel) -> Self:
-        self = cls()
+        fields = {}
         (fields_collection, get_attr_function) = cls._get_functions(instance)
         for k in fields_collection:
-            if hasattr(self, k):
-                setattr(self, k, get_attr_function(instance, k))
-        return self
+            if k in cls.model_fields:
+                fields.update({k: get_attr_function(instance, k)})
+        return cls(**fields)
 
     @classmethod
     def _get_functions(cls, instance: Any) -> tuple[list[str], Callable]:
-        if issubclass(instance, SQLBaseModel):
+        if issubclass(type(instance), SQLBaseModel):
             return (
                 cls._get_instance_fields(instance),
                 cls._get_instance_attr,

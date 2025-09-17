@@ -5,6 +5,10 @@ from ws.service.auth.auth_service import AuthService
 from ws.api.schemas.user import POSTUserSchema
 from ws.api.exceptions.user import HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST
 from ws.db.uow.base import BaseUOW
+from ws.db.repository import GenericRepository
+from ws.db.models import Roles
+from ws.dto.role import RoleDTO
+import uuid
 
 
 @pytest.fixture(scope="session")
@@ -13,8 +17,8 @@ def post_user_schema():
 
 
 @pytest.fixture(scope="session")
-def uow(async_session_factory):
-    return BaseUOW(async_session_factory)
+def uow(migrated_async_session_factory):
+    return BaseUOW(migrated_async_session_factory)
 
 
 @pytest.fixture(scope="session")
@@ -27,10 +31,20 @@ def authentication_service(uow):
     return AuthService(uow)
 
 
+async def test_create_roles(migrated_async_session_factory):
+    class Repo(GenericRepository[Roles]):
+        pass
+
+    r = Repo(migrated_async_session_factory)
+    r = await r.save(RoleDTO(uuididf=uuid.uuid4(), rolename="base_user"))
+    assert r.rolename == "base_user"
+
+
 @pytest.mark.asyncio
 async def test_register_user(
     registration_service: RegistrationService, post_user_schema: POSTUserSchema
 ):
+
     response = await registration_service.registration(post_user_schema)
     assert response.status_code == 200
 

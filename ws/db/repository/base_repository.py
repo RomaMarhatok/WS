@@ -99,12 +99,14 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
     async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
         filters = await self._create_filters(**kwargs)
         async with self.session_factory() as session:
+
             stmt = Select(self.model).where(*filters)
             entity = (await session.execute(stmt)).scalar_one_or_none()
             if entity is None:
                 raise EntityNotFoundException(
                     f"Entity {self.model.__name__}"
-                    + f" with values {filters} not found"
+                    + f" with values {",".join(f"({k} == {v})" for k, v in kwargs.items())}"  # noqa
+                    + "not found"
                 )
             return entity
 

@@ -31,9 +31,9 @@ class TokenService:
             algorithm=self.config.ALGORITHM,
         )
 
-    def create_access_token(self, token_payload: dict) -> str:
+    async def create_access_token(self, **token_payload: dict) -> str:
         data = {"type": self.token_types.ACCESS}
-        access_token_expire_date = self.get_expire_date_str_in_utc(
+        access_token_expire_date = await self.get_expire_date_str_in_utc(
             self.config.ACCESS_TOKEN_TIMEDELTA
         )
         data.update({"expire": access_token_expire_date})
@@ -41,9 +41,9 @@ class TokenService:
 
         return self._encode_token(token_payload=token_payload)
 
-    def create_refresh_token(self, token_payload: dict) -> str:
+    async def create_refresh_token(self, **token_payload: dict) -> str:
         data = {"type": self.token_types.REFRESH}
-        access_token_expire_date = self.get_expire_date_str_in_utc(
+        access_token_expire_date = await self.get_expire_date_str_in_utc(
             self.config.REFRESH_TOKEN_TIMEDELTA
         )
         data.update({"expire": access_token_expire_date})

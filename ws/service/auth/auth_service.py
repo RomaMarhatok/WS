@@ -32,9 +32,9 @@ class AuthService(BaseService):
         return await self._get_auth_response(user_dto.uuididf)
 
     async def _get_auth_response(self, uuididf: uuid.UUID):
-        access_token = await self.token_service.create_access_token(sub=uuididf)
+        access_token = await self.token_service.create_access_token(sub=str(uuididf))
         refresh_token = await self.token_service.create_refresh_token(
-            uuididf=uuididf,
+            uuididf=str(uuididf),
         )
         resp = JSONResponse(
             content={

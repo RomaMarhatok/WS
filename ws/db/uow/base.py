@@ -4,7 +4,6 @@ from ws.db.commands import UserCommandsManager, WarehousesCommands
 
 class BaseUOW:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
-        self._model = None
         self.session_factory = session_factory
 
     @property

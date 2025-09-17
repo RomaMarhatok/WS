@@ -8,9 +8,9 @@ def handle_http_exceptions(exceptions_map: dict[Exception, HTTPException]):
                 result = await func(*args, **kwargs)
                 return result
             except Exception as e:
-                if e not in exceptions_map.keys():
+                if type(e) not in exceptions_map.keys():
                     raise e
-            raise exceptions_map[exceptions_map]
+                raise exceptions_map[type(e)]
 
         return wrapper
 

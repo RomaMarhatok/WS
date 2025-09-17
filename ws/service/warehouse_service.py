@@ -7,13 +7,14 @@ from service.base import BaseService
 from ws.db.uow.base import BaseUOW
 
 
-db_to_http_exception_map = {EntityNotFoundException: HTTP_404_RECORD_NOT_FOUND}
-
-
 class WarehousesService(BaseService):
 
     def __init__(
-        self, uow: BaseUOW, db_to_http_exception_map: dict[Exception, HTTPException]
+        self,
+        uow: BaseUOW,
+        db_to_http_exception_map: dict[Exception, HTTPException] = {
+            EntityNotFoundException: HTTP_404_RECORD_NOT_FOUND
+        },
     ):
         super().__init__(db_to_http_exception_map=db_to_http_exception_map, uow=uow)
 
@@ -25,3 +26,4 @@ class WarehousesService(BaseService):
         warehouse_dto = await self.uow.warehouses.get_warehouse(
             **warehouse.model_dump()
         )
+        return warehouse_dto

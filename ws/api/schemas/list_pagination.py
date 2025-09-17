@@ -6,3 +6,4 @@ class ListPaginationSchema(BaseModel):
 
     limit: int
     offset: int
+    page: int

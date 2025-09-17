@@ -7,7 +7,7 @@ from ws.api.exceptions.user import (
 from ws.api.schemas.user import POSTUserSchema
 from ws.db.exceptions import EntityAlreadyExistException, CouldNotCreateEntityException
 from ws.db.uow.base import BaseUOW
-from service.base import BaseService
+from ws.service.base import BaseService
 
 
 class RegistrationService(BaseService):
