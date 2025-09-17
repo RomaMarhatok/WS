@@ -25,7 +25,5 @@ class RegistrationService(BaseService):
         )
 
     async def registration(self, credentials: POSTUserSchema) -> JSONResponse:
-        await self.uow.users.save_user(
-            username=credentials.username, password=credentials.password
-        )
+        await self.uow.users.save_user(credentials)
         return JSONResponse(content={"msg": "User has been created"})

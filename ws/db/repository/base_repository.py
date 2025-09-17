@@ -32,14 +32,7 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
                 return entity
             except IntegrityError as exc:
                 await session.rollback()
-                error_msg: str = exc.args[0]
-                if "DETAIL" in error_msg:
-                    error_msg = error_msg[error_msg.find("DETAIL") :]
-                if isinstance(exc.orig.__cause__, ForeignKeyViolationError):
-                    raise ForeignKeyNotExist(error_msg)
-                if isinstance(exc.orig.__cause__, UniqueViolationError):
-                    raise EntityAlreadyExistException(error_msg)
-                raise CouldNotCreateEntityException from exc
+                self._exception_handler(exc)
 
     async def update(self, dto: PYDANTIC_SCHEMA_TYPE) -> SQLALCHEMY_MODEL_TYPE:
         async with self.session_factory() as session:
@@ -53,11 +46,7 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
                 entity = (await session.execute(stmt)).scalar_one_or_none()
             except IntegrityError as exc:
                 await session.rollback()
-                error_msg: str = exc.args[0]
-                if "DETAIL" in error_msg:
-                    error_msg = error_msg[error_msg.find("DETAIL") :]
-                if isinstance(exc.orig.__cause__, ForeignKeyViolationError):
-                    raise ForeignKeyNotExist(error_msg)
+                self._exception_handler(exc)
             if entity is None:
                 raise EntityNotFoundException(
                     f"Entity {self.model.__name__} with UUID {dto.uuididf} not found"
@@ -123,3 +112,15 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
         generic_types_of_repo = getattr(cls, "__orig_bases__")[0]
         sqlachemy_entity_class = get_args(generic_types_of_repo)[0]
         return sqlachemy_entity_class
+
+    def _exception_handler(self, exc: IntegrityError):
+        error_msg: str = exc.args[0]
+        if "DETAIL" in error_msg:
+            error_msg = error_msg[error_msg.find("DETAIL") :]
+        integrity_error_map = {
+            ForeignKeyViolationError: ForeignKeyNotExist,
+            UniqueViolationError: EntityAlreadyExistException,
+        }
+        if exc.orig.__cause__ not in integrity_error_map:
+            raise CouldNotCreateEntityException from exc
+        raise integrity_error_map[exc.orig.__cause__](error_msg)

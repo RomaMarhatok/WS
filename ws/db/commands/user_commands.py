@@ -3,6 +3,7 @@ from ws.dto import UserDTO
 from ws.utils.security import get_password_hash
 from ws.db.models import Users, Roles
 from ws.db.commands.commands import BaseCommandsManager
+from ws.api.schemas import POSTUserSchema
 
 
 class UserCommandsManager(BaseCommandsManager):
@@ -16,13 +17,13 @@ class UserCommandsManager(BaseCommandsManager):
             Retrieves a user mathing the given criteria and returns UserDTO instance
     """
 
-    async def save_user(self, username: str, password: str) -> None:
+    async def save_user(self, user_data: POSTUserSchema) -> None:
         base_user_role: Roles = await self.get_repository(Roles).get(
             rolename="base_user"
         )
-        hashed_password = get_password_hash(password)
+        hashed_password = get_password_hash(user_data.password)
         dto = UserDTO(
-            username=username,
+            username=user_data.username,
             password=hashed_password,
             role_uuididf=base_user_role.uuididf,
             uuididf=uuid.uuid4(),
