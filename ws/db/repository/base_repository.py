@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from abc import ABC
 from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
-from ws.db.exceptions import (
+from ws.db.repository.exceptions import (
     EntityNotFoundException,
     CouldNotCreateEntityException,
     ForeignKeyNotExist,
@@ -88,7 +88,7 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
     async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
         filters = await self._create_filters(**kwargs)
         async with self.session_factory() as session:
-
+            self.model.__tablename__
             stmt = Select(self.model).where(*filters)
             entity = (await session.execute(stmt)).scalar_one_or_none()
             if entity is None:
@@ -123,4 +123,4 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
         }
         if exc.orig.__cause__ not in integrity_error_map:
             raise CouldNotCreateEntityException from exc
-        raise integrity_error_map[exc.orig.__cause__](error_msg)
+        raise integrity_error_map[exc.orig.__cause__](error_msg) from exc
