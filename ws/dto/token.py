@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class TokenType(Enum):
-    ACCESS = "access"
+    ACCESS = "ACCESS"
     REFRESH = "REFRESH"
 
 

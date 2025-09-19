@@ -1,8 +1,8 @@
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-from ws.api.schemas import ListPaginationSchema, GETWarehouseSchema
+from ws.api.schemas import ListPaginationSchema, GETWarehouseRequest
 from ws.api.exceptions.base import HTTP_404_RECORD_NOT_FOUND
-from db.exceptions import EntityNotFoundException
+from ws.db.repository.exceptions import EntityNotFoundException
 from service.base import BaseService
 from ws.db.uow.base import BaseUOW
 
@@ -22,8 +22,13 @@ class WarehousesService(BaseService):
         warehouses_list = await self.uow.warehouses.get_all(**pagination.model_dump())
         return JSONResponse(content={"warehouses": warehouses_list})
 
-    async def get_one_warehouses(self, warehouse: GETWarehouseSchema):
+    async def get_one_warehouses(self, warehouse: GETWarehouseRequest):
         warehouse_dto = await self.uow.warehouses.get_warehouse(
-            **warehouse.model_dump()
+            **warehouse.model_dump(exclude_none=True)
         )
         return warehouse_dto
+
+    async def get_warehouse_items(self, warehouse: GETWarehouseRequest):
+        await self.uow.warehouse_items.get_warehouse_items(
+            **warehouse.model_dump(exclude_none=True)
+        )

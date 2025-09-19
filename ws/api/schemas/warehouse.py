@@ -1,6 +1,7 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
-class GETWarehouseSchema(BaseModel):
+class GETWarehouseRequest(BaseModel):
     uuididf: str
-    warehouse_name: str
+    warehouse_name: Optional[str] = None

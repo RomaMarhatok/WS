@@ -1,14 +1,14 @@
 import uuid
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-from ws.api.schemas.user import POSTUserSchema
+from ws.api.schemas.user import POSTUserRequest
 from ws.api.exceptions.auth import HTTP_401_REFRESH_TOKEN_EXPIRED
 from ws.api.exceptions.user import HTTP_400_INCORRECT_USERNAME_OR_PASSWORD
 from ws.utils.security import verfiy_password
 from ws.service.auth.token_service import TokenService
 from ws.service.base import BaseService
 from ws.db.uow.base import BaseUOW
-from ws.db.exceptions import EntityNotFoundException
+from ws.db.repository.exceptions import EntityNotFoundException
 
 
 class AuthService(BaseService):
@@ -25,7 +25,7 @@ class AuthService(BaseService):
         )
         self.token_service = TokenService()
 
-    async def auth(self, credentials: POSTUserSchema) -> JSONResponse:
+    async def auth(self, credentials: POSTUserRequest) -> JSONResponse:
         user_dto = await self.uow.users.get_user(username=credentials.username)
         if not verfiy_password(credentials.password, user_dto.password):
             raise HTTP_400_INCORRECT_USERNAME_OR_PASSWORD

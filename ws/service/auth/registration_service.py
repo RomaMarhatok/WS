@@ -4,10 +4,14 @@ from ws.api.exceptions.user import (
     HTTP_400_INCORRECT_USERNAME_OR_PASSWORD,
     HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST,
 )
-from ws.api.schemas.user import POSTUserSchema
-from ws.db.exceptions import EntityAlreadyExistException, CouldNotCreateEntityException
+from ws.api.schemas.user import POSTUserRequest
+from ws.db.repository.exceptions import (
+    EntityAlreadyExistException,
+    CouldNotCreateEntityException,
+)
 from ws.db.uow.base import BaseUOW
 from ws.service.base import BaseService
+from ws.utils.security import get_password_hash
 
 
 class RegistrationService(BaseService):
@@ -24,6 +28,7 @@ class RegistrationService(BaseService):
             uow=uow,
         )
 
-    async def registration(self, credentials: POSTUserSchema) -> JSONResponse:
+    async def registration(self, credentials: POSTUserRequest) -> JSONResponse:
+        credentials.password = get_password_hash(credentials.password)
         await self.uow.users.save_user(credentials)
         return JSONResponse(content={"msg": "User has been created"})

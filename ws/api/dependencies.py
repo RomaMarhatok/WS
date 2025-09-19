@@ -16,13 +16,17 @@ def get_base_uow(
     return BaseUOW(session_factory)
 
 
-def get_warehouse_serivce(uow: BaseUOW = Depends(get_base_uow)):
-    return WarehousesService(uow=uow)
-
-
 def get_authentication_service(uow: BaseUOW = Depends(get_base_uow)):
     return AuthService(uow=uow)
 
 
 def get_registration_service(uow: BaseUOW = Depends(get_base_uow)):
     return RegistrationService(uow=uow)
+
+
+def get_warehouse_serivce(uow: BaseUOW = Depends(get_base_uow)):
+    return WarehousesService(uow=uow)
+
+
+def get_warehouse_items_service(uow: BaseUOW = Depends(get_base_uow)):
+    return

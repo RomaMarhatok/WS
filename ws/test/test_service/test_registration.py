@@ -2,7 +2,7 @@ import pytest
 from fastapi.exceptions import HTTPException
 from ws.service.auth.registration_service import RegistrationService
 from ws.service.auth.auth_service import AuthService
-from ws.api.schemas.user import POSTUserSchema
+from ws.api.schemas.user import POSTUserRequest
 from ws.api.exceptions.user import HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST
 from ws.db.uow.base import BaseUOW
 from ws.db.repository import GenericRepository
@@ -13,7 +13,7 @@ import uuid
 
 @pytest.fixture(scope="session")
 def post_user_schema():
-    return POSTUserSchema(username="Jhon", password="un@bra-cke@password")
+    return POSTUserRequest(username="Jhon", password="un@bra-cke@password")
 
 
 @pytest.fixture(scope="session")
@@ -42,7 +42,7 @@ async def test_create_roles(migrated_async_session_factory):
 
 @pytest.mark.asyncio
 async def test_register_user(
-    registration_service: RegistrationService, post_user_schema: POSTUserSchema
+    registration_service: RegistrationService, post_user_schema: POSTUserRequest
 ):
 
     response = await registration_service.registration(post_user_schema)
@@ -51,7 +51,7 @@ async def test_register_user(
 
 @pytest.mark.asyncio
 async def test_register_already_exist_user(
-    registration_service: RegistrationService, post_user_schema: POSTUserSchema
+    registration_service: RegistrationService, post_user_schema: POSTUserRequest
 ):
     with pytest.raises(HTTPException) as e:
         await registration_service.registration(post_user_schema)
@@ -63,7 +63,7 @@ async def test_register_already_exist_user(
 
 @pytest.mark.asyncio
 async def test_auth_user(
-    authentication_service: AuthService, post_user_schema: POSTUserSchema
+    authentication_service: AuthService, post_user_schema: POSTUserRequest
 ):
     response = await authentication_service.auth(post_user_schema)
     assert response.status_code == 200

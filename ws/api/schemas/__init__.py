@@ -1,5 +1,5 @@
-from .user import POSTUserSchema
+from .user import POSTUserRequest
 from .list_pagination import ListPaginationSchema
-from .warehouse import GETWarehouseSchema
+from .warehouse import GETWarehouseRequest
 
-__all__ = [POSTUserSchema, ListPaginationSchema, GETWarehouseSchema]
+__all__ = [POSTUserRequest, ListPaginationSchema, GETWarehouseRequest]

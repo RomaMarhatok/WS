@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from ws.api.schemas.user import POSTUserSchema
+from ws.api.schemas.user import POSTUserRequest
 from ws.api.dependencies import (
     get_authentication_service,
     get_registration_service,
@@ -12,7 +12,7 @@ auth_router = APIRouter(prefix="auth/")
 
 @auth_router.post("registry/")
 async def user_registrastion(
-    request: POSTUserSchema,
+    request: POSTUserRequest,
     service: RegistrationService = Depends(get_registration_service),
 ):
     return await service.registration(request)
@@ -20,6 +20,6 @@ async def user_registrastion(
 
 @auth_router.post("authentication/")
 async def user_authentication(
-    request: POSTUserSchema, service: AuthService = Depends(get_authentication_service)
+    request: POSTUserRequest, service: AuthService = Depends(get_authentication_service)
 ):
     return await service.auth(request)

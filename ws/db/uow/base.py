@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from ws.db.commands import UserCommandsManager, WarehousesCommands
+from ws.db.managers import UserManager, WarehousesManager, WarehouseItemsManager
 
 
 class BaseUOW:
@@ -8,8 +8,12 @@ class BaseUOW:
 
     @property
     def users(self):
-        return UserCommandsManager(self.session_factory)
+        return UserManager(self.session_factory)
 
     @property
     def warehouses(self):
-        return WarehousesCommands(self.session_factory)
+        return WarehousesManager(self.session_factory)
+
+    @property
+    def warehouse_items(self):
+        return WarehouseItemsManager(self.session_factory)
