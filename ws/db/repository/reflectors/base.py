@@ -7,5 +7,5 @@ class BaseReflector:
     def __init__(self, async_session_factory: async_sessionmaker[AsyncSession]):
         self.async_session_factory = async_session_factory
 
-    def _create_inspector(sync_conn: Connection) -> Inspector:
+    def _create_inspector(self, sync_conn: Connection) -> Inspector:
         return inspect(sync_conn)

@@ -3,7 +3,6 @@ from sqlalchemy.engine.interfaces import TableKey, ReflectedForeignKeyConstraint
 from ws.db.types import SQLALCHEMY_MODEL_TYPE
 from ws.db.repository.exceptions import (
     NotCombinedTablesException,
-    InvalidTableOrderException,
 )
 
 
@@ -41,23 +40,23 @@ class CombinableList(UserList):
         models: list[SQLALCHEMY_MODEL_TYPE],
     ):
         self._fks_reflection = fks_reflection
-        if self.check_tables_is_joinable(models) and self.check_tables_order(models):
+        if self.check_tables_order(models):
             super().__init__(models)
 
-    def check_tables_is_joinable(self, models: list[SQLALCHEMY_MODEL_TYPE]) -> bool:
-        for i in range(len(models)):
-            if i + 1 >= len(models):
-                break
-            current_m, next_m = models[i], models[i + 1]
-            if not self._check_tables_is_joinable(
-                current_m, next_m, self._fks_reflection
-            ):
-                raise NotCombinedTablesException(
-                    f"Table {current_m.__tablename__} and {next_m.__tablename__}"
-                    + "are not combinable"
-                )
-            current_m, next_m = next_m, models[i + 1]
-        return True
+    # def check_tables_is_joinable(self, models: list[SQLALCHEMY_MODEL_TYPE]) -> bool:
+    #     for i in range(len(models)):
+    #         if i + 1 >= len(models):
+    #             break
+    #         current_m, next_m = models[i], models[i + 1]
+    #         if not self._check_tables_is_joinable(
+    #             current_m, next_m, self._fks_reflection
+    #         ):
+    #             raise NotCombinedTablesException(
+    #                 f"Table {current_m.__tablename__} and {next_m.__tablename__} "
+    #                 + "are not combinable"
+    #             )
+    #         current_m, next_m = next_m, models[i + 1]
+    #     return True
 
     def check_tables_order(self, models: list[SQLALCHEMY_MODEL_TYPE]):
         if len(models) <= 1:
@@ -74,51 +73,39 @@ class CombinableList(UserList):
             try:
                 current_m, next_m = next_m, next(model_iter)
             except StopIteration:
-                raise InvalidTableOrderException(
+                raise NotCombinedTablesException(
                     "Invalid order of tables passed as parameter"
                     + f"The table {current_m.__tablename__} don't "
                     + f"have any relationships with {next_m.__tablename__}"
+                    + "Check order of models"
                 )
 
-    def devide_tables_by_pare(
+    def devide_tables_by_pairs(
         self,
     ) -> list[tuple[type[SQLALCHEMY_MODEL_TYPE], type[SQLALCHEMY_MODEL_TYPE]]]:
         try:
             models_iter = iter(self.data)
             current_m, next_m = next(models_iter), next(models_iter)
-            pare_list = [(current_m, next_m)]
+            pairs_list = [(current_m, next_m)]
             while True:
                 current_m, next_m = next_m, next(models_iter)
-                pare_list.append((current_m, next_m))
+                pairs_list.append((current_m, next_m))
         except StopIteration:
-            return pare_list
+            return pairs_list
 
-    def _check_tables_is_joinable(
-        self,
-        left_model: type[SQLALCHEMY_MODEL_TYPE],
-        right_model: type[SQLALCHEMY_MODEL_TYPE],
-        fks_reflection: dict[TableKey, list[ReflectedForeignKeyConstraint]],
-    ) -> bool:
-        left_fks = fks_reflection.get(
-            (left_model.__table__.schema, left_model.__tablename__)
-        )
-        right_fks = fks_reflection.get(
-            (right_model.__table__.schema, right_model.__tablename__)
-        )
-        if left_fks is None or right_fks is None:
-            return False
-        left_iter = iter(min([left_fks, right_fks], key=len))
-        right_iter = iter(max([left_fks, right_fks], key=len))
-        while True:
-            try:
-                left_fk = next(left_iter)
-                if left_fk["referred_table"] == right_model.__tablename__:
-                    return True
-            except StopIteration:
-                pass
-            try:
-                right_fk = next(right_iter)
-                if right_fk["referred_table"] == left_model.__tablename__:
-                    return True
-            except StopIteration:
-                return False
+    # def _check_tables_is_joinable(
+    #     self,
+    #     left_model: type[SQLALCHEMY_MODEL_TYPE],
+    #     right_model: type[SQLALCHEMY_MODEL_TYPE],
+    #     fks_reflection: dict[TableKey, list[ReflectedForeignKeyConstraint]],
+    # ) -> bool:
+    #     left_fks = fks_reflection.get(
+    #         (left_model.__table__.schema, left_model.__tablename__)
+    #     )
+
+    #     if left_fks is None:
+    #         return False
+    #     for left_fk in left_fks:
+    #         if left_fk["referred_table"] == right_model.__tablename__:
+    #             return True
+    #     return False

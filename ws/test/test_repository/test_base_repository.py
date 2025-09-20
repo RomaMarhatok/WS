@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from alembic.config import Config
 from alembic.command import upgrade, downgrade
 from ws.db.repository.base_repository import GenericRepository
-from ws.db.exceptions import (
+from ws.db.repository.exceptions import (
     EntityAlreadyExistException,
     EntityNotFoundException,
     ForeignKeyNotExist,
