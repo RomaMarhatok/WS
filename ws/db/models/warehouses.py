@@ -1,7 +1,11 @@
 import uuid
-from .base import BaseModel
+from ws.db.models.base import BaseModel
 from sqlalchemy import UUID, ForeignKey, String
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ws.db.models import WarehouseItems
 
 
 class Warehouses(BaseModel):
@@ -15,4 +19,7 @@ class Warehouses(BaseModel):
             ondelete="SET NULL",
         ),
         nullable=True,
+    )
+    warehouse_items: Mapped[list["WarehouseItems"]] = relationship(
+        "WarehouseItems", back_populates="warehouses"
     )

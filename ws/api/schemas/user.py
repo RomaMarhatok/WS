@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
 
-class POSTUserSchema(BaseModel):
+class POSTUserRequest(BaseModel):
     username: str
     password: str

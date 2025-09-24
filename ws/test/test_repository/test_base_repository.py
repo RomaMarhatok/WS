@@ -1,182 +1,292 @@
 import pytest
 import uuid
 import pytest_asyncio
-from pydantic import BaseModel
-from ws.test.test_repository.fake_db.fake_tables import FakeAnimalTable, FakeOwnerTable
+import asyncio
+from sqlalchemy import Inspector, inspect
+from sqlalchemy.ext.asyncio import AsyncEngine
+from alembic.config import Config
+from alembic.command import upgrade, downgrade
 from ws.db.repository.base_repository import GenericRepository
-from ws.db.exceptions import (
+from ws.db.repository.exceptions import (
     EntityAlreadyExistException,
     EntityNotFoundException,
     ForeignKeyNotExist,
 )
+from ws.db.models import (
+    Roles,
+    Users,
+    Warehouses,
+)
+from ws.dto import UserDTO, RoleDTO
 
 
-class AnimalDTO(BaseModel):
-    uuididf: uuid.UUID
-    animal_name: str
+@pytest.mark.asyncio
+async def test_apply_migrations(alembic_config: Config, async_engine: AsyncEngine):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, upgrade, alembic_config, "head")
 
+    async with async_engine.connect() as conn:
 
-class OwnerDTO(BaseModel):
-    uuididf: uuid.UUID
-    owner_name: str
-    animal_uuidfidf: uuid.UUID
+        def _get_talbe_names(sync_conn):
+            inspector: Inspector = inspect(sync_conn)
+            return inspector.get_table_names()
 
-
-@pytest.fixture(scope="session")
-def animal_repository(async_session_maker_for_test):
-    class AnimalRepository(GenericRepository[FakeAnimalTable, AnimalDTO]):
-        @property
-        def _model(self):
-            return FakeAnimalTable
-
-    return AnimalRepository(async_session_maker_for_test)
-
-
-@pytest.fixture(scope="session")
-def owner_repository(async_session_maker_for_test):
-    class OwnerRepository(GenericRepository[FakeOwnerTable, OwnerDTO]):
-        @property
-        def _model(self):
-            return FakeOwnerTable
-
-    return OwnerRepository(async_session_maker_for_test)
+        tables = await conn.run_sync(_get_talbe_names)
+        assert len(tables) != 1
 
 
 @pytest.fixture(scope="session")
-def animal_dto() -> AnimalDTO:
-    return AnimalDTO(uuididf=uuid.uuid4(), animal_name="boby")
+def role_repository(async_session_factory):
+    class RoleRepository(GenericRepository[Roles]):
+        pass
+
+    return RoleRepository(async_session_factory)
+
+
+@pytest.fixture(scope="session")
+def user_repository(async_session_factory):
+    class UserRepository(GenericRepository[Users]):
+        pass
+
+    return UserRepository(async_session_factory)
+
+
+@pytest.fixture(scope="session")
+def warehouse_repository(async_session_factory):
+    class WarehousesRepository(GenericRepository[Warehouses]):
+        pass
+
+    return WarehousesRepository(async_session_factory)
+
+
+@pytest.fixture(scope="session")
+def role_dto() -> RoleDTO:
+    return RoleDTO(uuididf=uuid.uuid4(), rolename="boby")
 
 
 @pytest_asyncio.fixture(scope="session")
-async def animal_db(
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
-) -> FakeAnimalTable:
-    return await animal_repository.save(animal_dto)
+async def role_from_db(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+) -> Roles:
+    return await role_repository.save(role_dto)
 
 
 @pytest.fixture(scope="session")
-def owner_dto(animal_db: FakeAnimalTable) -> OwnerDTO:
-    return OwnerDTO(
-        uuididf=uuid.uuid4(), owner_name="Tom", animal_uuidfidf=animal_db.uuididf
+def user_dto(role_from_db: Roles) -> UserDTO:
+    return UserDTO(
+        uuididf=uuid.uuid4(),
+        username="Tom",
+        role_uuididf=role_from_db.uuididf,
+        password="password",
     )
 
 
 @pytest.mark.asyncio
-async def test_create_animal_entity(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
+async def test_create_role_entity(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
 ):
-    entity = await animal_repository.save(animal_dto)
-    assert len(await animal_repository.get_batch()) == 1
-    assert entity.uuididf == animal_dto.uuididf
-    assert entity.animal_name == animal_dto.animal_name
+    entity = await role_repository.save(role_dto)
+    assert len(await role_repository.get_batch()) == 1
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
 
 
 @pytest.mark.asyncio
-async def test_create_already_exist_animal_entity(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
+async def test_create_already_exist_role_entity(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
 ):
     with pytest.raises(EntityAlreadyExistException):
-        await animal_repository.save(animal_dto)
+        await role_repository.save(role_dto)
 
 
 @pytest.mark.asyncio
-async def test_get_animal_by_uuididf(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
+async def test_get_role_by_uuididf(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
 ):
-    entity = await animal_repository.get_by_uuididf(animal_dto.uuididf)
-    assert entity.uuididf == animal_dto.uuididf
-    assert entity.animal_name == animal_dto.animal_name
+    entity = await role_repository.get(uuididf=role_dto.uuididf)
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
 
 
 @pytest.mark.asyncio
-async def test_get_not_exist_animal_by_uuididf(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+async def test_get_role_by_name(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+):
+    entity = await role_repository.get(rolename=role_dto.rolename)
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
+
+
+@pytest.mark.asyncio
+async def test_get_role_by_name_with_field(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+):
+
+    entity = await role_repository.get(rolename=role_dto.rolename)
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
+
+
+@pytest.mark.asyncio
+async def test_get_not_exist_role_by_uuididf(
+    role_repository: GenericRepository[Roles],
 ):
     with pytest.raises(EntityNotFoundException):
-        await animal_repository.get_by_uuididf(uuididf=uuid.uuid4())
+        await role_repository.get(uuididf=uuid.uuid4())
 
 
 @pytest.mark.asyncio
-async def test_update_animal(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
+async def test_get_not_exist_role_by_name(
+    role_repository: GenericRepository[Roles],
 ):
-    animal_dto.animal_name = "foxy"
-    entity = await animal_repository.update(animal_dto)
-    assert entity.uuididf == animal_dto.uuididf
-    assert entity.animal_name == animal_dto.animal_name
+    with pytest.raises(EntityNotFoundException):
+        await role_repository.get(rolename="Cat")
+
+
+@pytest.mark.asyncio
+async def test_multiply_kwarg_in_get_method(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+):
+    entity = await role_repository.get(
+        rolename=role_dto.rolename, uuididf=role_dto.uuididf
+    )
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
+
+
+@pytest.mark.asyncio
+async def test_get_role_by_not_exist_field(
+    role_repository: GenericRepository[Roles],
+):
+    with pytest.raises(AttributeError):
+        await role_repository.get(not_exist_field="Cat")
+
+
+@pytest.mark.asyncio
+async def test_find_role_use_find_method(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+):
+    entities = await role_repository.find(
+        rolename=role_dto.rolename, uuididf=role_dto.uuididf
+    )
+    assert len(entities) != 0
+    assert entities[0].uuididf == role_dto.uuididf
+    assert entities[0].rolename == role_dto.rolename
+
+
+@pytest.mark.asyncio
+async def test_find_role_with_not_exist_fields_method(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+):
+    with pytest.raises(AttributeError):
+        await role_repository.find(
+            not_exist_field=role_dto.rolename, uuididf=role_dto.uuididf
+        )
+
+
+@pytest.mark.asyncio
+async def test_find_role_without_argument(
+    role_repository: GenericRepository[Roles],
+):
+    with pytest.raises(ValueError):
+        await role_repository.find()
+
+
+@pytest.mark.asyncio
+async def test_update_role(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
+):
+    role_dto.rolename = "foxy"
+    entity = await role_repository.update(role_dto)
+    assert entity.uuididf == role_dto.uuididf
+    assert entity.rolename == role_dto.rolename
 
 
 @pytest.mark.asyncio
 async def test_update_not_exist_entity(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
+    role_repository: GenericRepository[Roles],
 ):
-    animal_dto = AnimalDTO(uuididf=uuid.uuid4(), animal_name="boby")
+    role_dto = RoleDTO(uuididf=uuid.uuid4(), rolename="boby")
     with pytest.raises(EntityNotFoundException):
-        await animal_repository.update(animal_dto)
+        await role_repository.update(role_dto)
 
 
 @pytest.mark.asyncio
-async def test_delete_animal_entity(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
+async def test_delete_role_entity(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
 ):
 
-    await animal_repository.delete(animal_dto.uuididf)
-    assert len(await animal_repository.get_batch()) == 0
+    await role_repository.delete(role_dto.uuididf)
+    assert len(await role_repository.get_batch()) == 0
 
 
 @pytest.mark.asyncio
-async def test_delete_not_exist_animal_entity(
-    migrate_fake_migrations,
-    animal_repository: GenericRepository[FakeAnimalTable, AnimalDTO],
-    animal_dto: AnimalDTO,
+async def test_delete_not_exist_role_entity(
+    role_repository: GenericRepository[Roles],
+    role_dto: RoleDTO,
 ):
     with pytest.raises(EntityNotFoundException):
-        await animal_repository.delete(animal_dto.uuididf)
-    assert len(await animal_repository.get_batch()) == 0
+        await role_repository.delete(role_dto.uuididf)
+    assert len(await role_repository.get_batch()) == 0
 
 
 @pytest.mark.asyncio
-async def test_create_owner_entity(
-    owner_dto: OwnerDTO, owner_repository: GenericRepository[FakeOwnerTable, OwnerDTO]
+async def test_create_user_entity(
+    user_dto: UserDTO, user_repository: GenericRepository[Users]
 ):
 
-    entity = await owner_repository.save(owner_dto)
-    assert len(await owner_repository.get_batch()) == 1
-    assert entity.uuididf == owner_dto.uuididf
-    assert entity.owner_name == owner_dto.owner_name
+    entity = await user_repository.save(user_dto)
+    assert len(await user_repository.get_batch()) == 1
+    assert entity.uuididf == user_dto.uuididf
+    assert entity.username == user_dto.username
 
 
 @pytest.mark.asyncio
-async def test_create_owner_entity_with_not_exist_animal_uuididf(
-    owner_repository: GenericRepository[FakeOwnerTable, OwnerDTO],
+async def test_create_user_entity_with_not_exist_role_uuididf(
+    user_repository: GenericRepository[Users],
 ):
-    owner_dto = OwnerDTO(
-        uuididf=uuid.uuid4(), owner_name="Jhon", animal_uuidfidf=uuid.uuid4()
+    user_dto = UserDTO(
+        uuididf=uuid.uuid4(),
+        username="Jhon",
+        password="hello world",
+        role_uuididf=uuid.uuid4(),
     )
     with pytest.raises(ForeignKeyNotExist):
-        await owner_repository.save(owner_dto)
-    assert len(await owner_repository.get_batch()) == 1
+        await user_repository.save(user_dto)
+    assert len(await user_repository.get_batch()) == 1
 
 
 @pytest.mark.asyncio
-async def test_update_owner_entity_with_not_exist_animal_uuididf(
-    owner_repository: GenericRepository[FakeOwnerTable, OwnerDTO],
-    owner_dto: OwnerDTO,
+async def test_update_user_entity_with_not_exist_role_uuididf(
+    user_repository: GenericRepository[Users],
+    user_dto: UserDTO,
 ):
-    owner_dto.animal_uuidfidf = uuid.uuid4()
+    user_dto.role_uuididf = uuid.uuid4()
     with pytest.raises(ForeignKeyNotExist):
-        await owner_repository.update(owner_dto)
-    assert len(await owner_repository.get_batch()) == 1
+        await user_repository.update(user_dto)
+    assert len(await user_repository.get_batch()) == 1
+
+
+@pytest.mark.asyncio
+async def test_downgrade_migrations(alembic_config: Config, async_engine: AsyncEngine):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, downgrade, alembic_config, "base")
+    async with async_engine.connect() as conn:
+
+        def _get_table_names(sync_conn):
+            inspector: Inspector = inspect(sync_conn)
+            return inspector.get_table_names()
+
+        tables = await conn.run_sync(_get_table_names)
+        assert len(tables) == 1

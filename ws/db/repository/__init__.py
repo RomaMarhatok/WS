@@ -1,4 +1,4 @@
-from .role_repository import RoleRepository
-from .user_repository import UserRepository
+from .base_repository import GenericRepository
+from .joined_repoistory import JoinedRepository
 
-__all__ = [RoleRepository, UserRepository]
+__all__ = [GenericRepository, JoinedRepository]

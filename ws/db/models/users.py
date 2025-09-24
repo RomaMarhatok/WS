@@ -1,7 +1,13 @@
+from __future__ import annotations
 import uuid
 from sqlalchemy import String, ForeignKey, UUID
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 from ws.db.models.base import BaseModel
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ws.db.models import Roles
 
 
 class Users(BaseModel):
@@ -17,3 +23,4 @@ class Users(BaseModel):
         ),
         nullable=False,
     )
+    role: Mapped["Roles"] = relationship("Roles", back_populates="users")

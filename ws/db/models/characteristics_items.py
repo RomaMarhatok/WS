@@ -1,8 +1,12 @@
 import uuid
 from datetime import datetime
-from .base import BaseModel
+from ws.db.models.base import BaseModel
 from sqlalchemy import String, TIMESTAMP, DECIMAL, ForeignKey, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ws.db.models import Items, Characteristics
 
 
 class CharacteristicsItems(BaseModel):
@@ -33,4 +37,11 @@ class CharacteristicsItems(BaseModel):
         TIMESTAMP(timezone=True),
         nullable=True,
         index=True,
+    )
+    characteristics: Mapped["Characteristics"] = relationship(
+        "Characteristics", back_populates="characteristics_item"
+    )
+
+    items: Mapped[list["Items"]] = relationship(
+        "Items", back_populates="item_characteristics"
     )
