@@ -6,9 +6,10 @@ from .item_types import ItemTypes
 from .items import Items
 from .characteristics import Characteristics
 from .characteristics_items import CharacteristicsItems
-from .order_statuses import OrdertStatuses
 from .orders import Orders
+from .order_statuses import OrderStatuses
 from .warehouse_items import WarehouseItems
+
 
 __all__ = [
     Roles,
@@ -18,8 +19,8 @@ __all__ = [
     ItemTypes,
     Characteristics,
     CharacteristicsItems,
-    OrdertStatuses,
     Orders,
+    OrderStatuses,
     Warehouses,
     BaseModel,
 ]
