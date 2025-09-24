@@ -1,6 +1,6 @@
 import uuid
 from ws.dto import UserDTO
-from ws.db.models import Users, Roles
+from ws.db import models
 from ws.db.managers.manager import BaseManager
 from ws.api.schemas import POSTUserRequest
 
@@ -17,7 +17,7 @@ class UserManager(BaseManager):
     """
 
     async def save_user(self, user_data: POSTUserRequest) -> None:
-        base_user_role: Roles = await self.get_repository(Roles).get(
+        base_user_role: models.Roles = await self.get_repository(models.Roles).get(
             rolename="base_user"
         )
         dto = UserDTO(
@@ -26,8 +26,8 @@ class UserManager(BaseManager):
             role_uuididf=base_user_role.uuididf,
             uuididf=uuid.uuid4(),
         )
-        await self.get_repository(Users).save(dto)
+        await self.get_repository(models.Users).save(dto)
 
     async def get_user(self, **kwargs) -> UserDTO:
-        user: Users = await self.get_repository(Users).get(**kwargs)
+        user: models.Users = await self.get_repository(models.Users).get(**kwargs)
         return UserDTO.from_instance(user)

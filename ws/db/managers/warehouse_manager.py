@@ -4,12 +4,10 @@ from ws.db.managers.manager import BaseManager
 
 
 class WarehousesManager(BaseManager):
-    async def get_all(self, limit: int, offset: int) -> list[WarehousesDTO]:
+    async def get_all(self) -> list[WarehousesDTO]:
         return [
             WarehousesDTO.from_instance(warehouse)
-            for warehouse in await self.get_repository(Warehouses).get_batch(
-                limit=limit, offset=offset
-            )
+            for warehouse in await self.get_repository(Warehouses).get_batch()
         ]
 
     async def get_warehouse(self, **kwargs) -> WarehousesDTO:

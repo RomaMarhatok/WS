@@ -1,12 +1,11 @@
 from abc import ABC
-from typing import Type
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from typing import Type, Iterable
 from ws.db.repository import GenericRepository
 from ws.db.repository.joined_repoistory import (
-    LEFT_MODEL_TYPE,
-    RIGHT_MODEL_TYPE,
     JoinedRepository,
 )
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from ws.db.types import SQLALCHEMY_MODEL_TYPE
 
 
@@ -34,12 +33,8 @@ class BaseManager(ABC):
 
         return Repository(self.session_factory)
 
-    def get_join_repository(
-        self,
-        left_joined_model: type[LEFT_MODEL_TYPE],
-        right_joined_model: type[RIGHT_MODEL_TYPE],
-    ) -> JoinedRepository[LEFT_MODEL_TYPE, RIGHT_MODEL_TYPE]:
-        class JoinRepo(JoinedRepository[left_joined_model, right_joined_model]):
+    async def get_join_repository(self, models: Iterable[type[SQLALCHEMY_MODEL_TYPE]]):
+        class JoinRepo(JoinedRepository):
             pass
 
-        return JoinRepo(self.session_factory, left_joined_model, right_joined_model)
+        return await JoinRepo.init(self.session_factory, models)
