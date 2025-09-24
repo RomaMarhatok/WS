@@ -11,4 +11,4 @@ if TYPE_CHECKING:
 class Roles(BaseModel):
     __tablename__ = "roles"
     rolename: Mapped[str] = mapped_column(String(100), unique=True, index=True)
-    users: Mapped[list["Users"]] = relationship("Users", back_populates="role")
+    users: Mapped[list["Users"]] = relationship(back_populates="role")

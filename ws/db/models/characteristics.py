@@ -12,5 +12,5 @@ class Characteristics(BaseModel):
     __tablename__ = "characteristics"
     name: Mapped[str] = mapped_column(String(150), unique=True, index=True)
     characteristics_item: Mapped[list["CharacteristicsItems"]] = relationship(
-        "CharacteristicsItems", back_populates="characteristics"
+        back_populates="characteristics"
     )

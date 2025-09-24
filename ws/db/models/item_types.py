@@ -12,6 +12,5 @@ class ItemTypes(BaseModel):
     __tablename__ = "item_types"
     name: Mapped[str] = mapped_column(String(300), unique=True, index=True)
     items: Mapped[list["Items"]] = relationship(
-        "Items",
         back_populates="item_type",
     )

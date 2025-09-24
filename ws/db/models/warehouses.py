@@ -5,7 +5,7 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ws.db.models import WarehouseItems
+    from ws.db.models import Items, WarehouseItems
 
 
 class Warehouses(BaseModel):
@@ -21,5 +21,8 @@ class Warehouses(BaseModel):
         nullable=True,
     )
     warehouse_items: Mapped[list["WarehouseItems"]] = relationship(
-        "WarehouseItems", back_populates="warehouses"
+        back_populates="warehouses", viewonly=True
+    )
+    items: Mapped[list["Items"]] = relationship(
+        secondary="warehouses_items", back_populates="warehouses"
     )
