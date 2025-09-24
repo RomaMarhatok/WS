@@ -22,7 +22,7 @@ def test_creation_joined_repository(migrated_async_session_factory):
 
 @pytest.mark.asyncio
 async def test_stmt_creation(joined_repository: JoinedRepository):
-    stmt = await joined_repository._stmt(
+    stmt = await joined_repository._compile_select_stmt(
         [WarehouseItems.amount, Items.uuididf], WarehouseItems.uuididf == Items.uuididf
     )
     assert stmt

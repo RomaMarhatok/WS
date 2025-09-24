@@ -1,9 +1,9 @@
 from collections import UserList
-from sqlalchemy.engine.interfaces import TableKey, ReflectedForeignKeyConstraint
-from ws.db.types import SQLALCHEMY_MODEL_TYPE
 from ws.db.repository.exceptions import (
     NotCombinedTablesException,
 )
+from sqlalchemy.engine.interfaces import TableKey, ReflectedForeignKeyConstraint
+from ws.db.types import SQLALCHEMY_MODEL_TYPE
 
 
 class CombineInfo:
@@ -39,30 +39,18 @@ class CombinableList(UserList):
         fks_reflection: dict[TableKey, list[ReflectedForeignKeyConstraint]],
         models: list[SQLALCHEMY_MODEL_TYPE],
     ):
+
         self._fks_reflection = fks_reflection
         if self.check_tables_order(models):
             super().__init__(models)
 
-    # def check_tables_is_joinable(self, models: list[SQLALCHEMY_MODEL_TYPE]) -> bool:
-    #     for i in range(len(models)):
-    #         if i + 1 >= len(models):
-    #             break
-    #         current_m, next_m = models[i], models[i + 1]
-    #         if not self._check_tables_is_joinable(
-    #             current_m, next_m, self._fks_reflection
-    #         ):
-    #             raise NotCombinedTablesException(
-    #                 f"Table {current_m.__tablename__} and {next_m.__tablename__} "
-    #                 + "are not combinable"
-    #             )
-    #         current_m, next_m = next_m, models[i + 1]
-    #     return True
-
     def check_tables_order(self, models: list[SQLALCHEMY_MODEL_TYPE]):
+
         if len(models) <= 1:
             raise ValueError(f"Use {self.__class__.__name__} at least for two models")
         model_iter = iter(models)
         current_m, next_m = next(model_iter), next(model_iter)
+
         while True:
             table_fk_reflection = self._fks_reflection.get(
                 (current_m.__table__.schema, current_m.__tablename__)
@@ -92,20 +80,3 @@ class CombinableList(UserList):
                 pairs_list.append((current_m, next_m))
         except StopIteration:
             return pairs_list
-
-    # def _check_tables_is_joinable(
-    #     self,
-    #     left_model: type[SQLALCHEMY_MODEL_TYPE],
-    #     right_model: type[SQLALCHEMY_MODEL_TYPE],
-    #     fks_reflection: dict[TableKey, list[ReflectedForeignKeyConstraint]],
-    # ) -> bool:
-    #     left_fks = fks_reflection.get(
-    #         (left_model.__table__.schema, left_model.__tablename__)
-    #     )
-
-    #     if left_fks is None:
-    #         return False
-    #     for left_fk in left_fks:
-    #         if left_fk["referred_table"] == right_model.__tablename__:
-    #             return True
-    #     return False

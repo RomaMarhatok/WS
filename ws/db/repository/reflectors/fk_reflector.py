@@ -1,5 +1,5 @@
-from sqlalchemy import Inspector, Connection
 from ws.db.repository.reflectors.base import BaseReflector
+from sqlalchemy import Inspector, Connection
 from ws.db.types import SQLALCHEMY_MODEL_TYPE
 from sqlalchemy.engine.interfaces import TableKey, ReflectedForeignKeyConstraint
 
@@ -11,7 +11,7 @@ class FkReflector(BaseReflector):
         tablename_filter: list[type[SQLALCHEMY_MODEL_TYPE]] = None,
     ):
         super().__init__(async_session_factory)
-        self.filter = [m.__tablename__ for m in tablename_filter]
+        self.filter = tablename_filter
 
     def _get_fks_reflection(
         self, sync_conn: Connection

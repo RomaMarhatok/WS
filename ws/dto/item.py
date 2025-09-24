@@ -6,3 +6,4 @@ class ItemDTO(BaseDBModelDTO):
     nomination: str
     description: str
     type: uuid.UUID
+    type_name: str
