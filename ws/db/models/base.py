@@ -39,7 +39,6 @@ class BaseModel(DeclarativeBase):
     def _get_relationships_graph(
         cls,
         initial_dict: dict[type[Self], list[RelationshipProperty[Any]]],
-        # relationships: list[RelationshipProperty[Any]],
     ):
         if cls not in initial_dict:
             initial_dict.update({cls: cls.get_model_relationships()})
@@ -51,17 +50,9 @@ class BaseModel(DeclarativeBase):
                 initial_dict.update({next_class: next_class.get_model_relationships()})
             initial_dict.update(next_class._get_relationships_graph(initial_dict))
         return initial_dict
-        # if isinstance(next_class, BaseModel):
-        #     initial_dict[next_class].append(
-        #         {
-        #             next_class: next_class._get_relationships_graph(
-        #                 initial_dict, next_class.get_model_relationships()
-        #             )
-        #         }
-        #     )
 
     @classmethod
     def get_relationships_graph(cls):
         relationships_graph: dict[Self, list] = {cls: cls.get_model_relationships()}
-        cls._get_relationships_graph(relationships_graph)
+        relationships_graph.update(cls._get_relationships_graph(relationships_graph))
         return relationships_graph

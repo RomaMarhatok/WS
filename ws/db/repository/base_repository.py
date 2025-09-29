@@ -1,8 +1,9 @@
 import uuid
 from abc import ABC
 from functools import lru_cache
-from typing import Generic, get_args, Type
+from typing import Generic, get_args, Type, Iterable, Self
 from sqlalchemy import update, Select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from ws.db.repository.exceptions import (
@@ -13,6 +14,8 @@ from ws.db.repository.exceptions import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
+from sqlalchemy.orm.relationships import RelationshipProperty
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 
 class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
@@ -66,13 +69,13 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             await session.commit()
 
     async def get_batch(
-        self, limit: int = 10, offset: int = 0
+        self,
     ) -> list[SQLALCHEMY_MODEL_TYPE]:
         async with self.session_factory() as session:
             stmt = Select(self.model)
-            return (await session.execute(stmt)).scalars().all()
+            return (await session.execute(stmt)).scalars()
 
-    async def _create_filters(self, **kwargs) -> list:
+    async def _create_where_condition(self, **kwargs) -> list:
         if len(kwargs.items()) == 0:
             raise ValueError("Expected at least on keyword argument")
         filters = []
@@ -85,26 +88,37 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
                 )
         return filters
 
-    async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
-        filters = await self._create_filters(**kwargs)
+    async def get(
+        self,
+        selectable: Iterable[InstrumentedAttribute | list[type[SQLALCHEMY_MODEL_TYPE]]],
+        where_conditions: dict,
+        passing_relation: list[RelationshipProperty] = None,
+    ) -> SQLALCHEMY_MODEL_TYPE:
+        conditions = await self._create_where_condition(**where_conditions)
+        stmt = await self._get(
+            selectable, where_conditions=conditions, passing_relation=passing_relation
+        )
         async with self.session_factory() as session:
-            self.model.__tablename__
-            stmt = Select(self.model).where(*filters)
             entity = (await session.execute(stmt)).scalar_one_or_none()
             if entity is None:
                 raise EntityNotFoundException(
                     f"Entity {self.model.__name__}"
-                    + f" with values {",".join(f"({k} == {v})" for k, v in kwargs.items())}"  # noqa
+                    + f" with values {",".join(f"({k} == {v})" for k, v in conditions.items())}"  # noqa
                     + "not found"
                 )
             return entity
 
-    async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
-        filters = await self._create_filters(**kwargs)
-        async with self.session_factory() as session:
-            stmt = Select(self.model).where(*filters)
-            entities = (await session.execute(stmt)).scalars().all()
-            return entities
+    async def search(self, searched_models, condition_pramas, attached_relationsips):
+        pass
+
+    async def find(self):
+        pass
+
+    async def by(self, **kwargs) -> Self:
+        return self
+
+    async def attach(self, relation: RelationshipProperty) -> Self:
+        return self
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -124,3 +138,16 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
         if exc.orig.__cause__ not in integrity_error_map:
             raise CouldNotCreateEntityException from exc
         raise integrity_error_map[exc.orig.__cause__](error_msg) from exc
+
+    async def _get(
+        self,
+        selectable: Iterable[InstrumentedAttribute | list[type[SQLALCHEMY_MODEL_TYPE]]],
+        where_conditions: list = None,
+        passing_relation: list[RelationshipProperty] = None,
+    ) -> Select:
+        stmt = Select(*selectable)
+        if passing_relation is not None:
+            stmt = stmt.options(*passing_relation)
+        if where_conditions is not None:
+            stmt = stmt.where(*where_conditions)
+        return stmt

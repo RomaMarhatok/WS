@@ -11,3 +11,9 @@ def refl(db_session_factory):
 async def test_fk_reflection(refl: FkReflector):
     refl = await refl.get_fks_reflection()
     print(refl)
+
+
+def test_graph():
+    from ws.db.models import Items
+
+    print(Items.get_relationships_graph())

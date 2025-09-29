@@ -1,15 +1,26 @@
-from ws.db.models import Warehouses
+from ws.db.models import Warehouses, Items
 from ws.dto import WarehousesDTO
 from ws.db.managers.manager import BaseManager
 
 
 class WarehousesManager(BaseManager):
-    async def get_all(self) -> list[WarehousesDTO]:
+    async def get_all(self) -> list[Warehouses]:
         return [
-            WarehousesDTO.from_instance(warehouse)
-            for warehouse in await self.get_repository(Warehouses).get_batch()
+            warehouse for warehouse in await self.get_repository(Warehouses).get_batch()
         ]
 
     async def get_warehouse(self, **kwargs) -> WarehousesDTO:
         warehouse = await self.get_repository(Warehouses).get(**kwargs)
         return WarehousesDTO.from_instance(warehouse)
+
+    async def get_warehouse_items(self, request_data: dict):
+        repo = self.get_repository(Warehouses)
+        repo.find().by().attach().attach()
+        # repo.find
+        #     Items,
+        #     # ,
+        #     # [joinedload(Warehouses.items).joinedload(Items.item_type)],
+        # )
+        # .by(request_data)
+        # .attach(Warehouses.items)
+        # .attach(Items.item_type)

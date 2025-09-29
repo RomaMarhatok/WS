@@ -1,7 +1,8 @@
-from ws.db.repository.reflectors.base import BaseReflector
 from sqlalchemy import Inspector, Connection
-from ws.db.types import SQLALCHEMY_MODEL_TYPE
 from sqlalchemy.engine.interfaces import TableKey, ReflectedForeignKeyConstraint
+from ws.db.types import SQLALCHEMY_MODEL_TYPE
+from ws.db.repository.reflectors.base import BaseReflector
+from ws.db.models import BaseModel
 
 
 class FkReflector(BaseReflector):
@@ -54,3 +55,25 @@ class FkReflector(BaseReflector):
         for fk in fks_reflection:
             if fk["referred_table"] == model.__tablename__:
                 return getattr(model, fk["referred_columns"][0])
+
+    async def get_fk_for_table(
+        self, model: type[SQLALCHEMY_MODEL_TYPE] | str, schemaname: str = None
+    ) -> dict[str, set[str]]:
+        fks_refl = await self.get_fks_reflection()
+        tablename = model if isinstance(model, str) else model.__tablename__
+        return {
+            tablename: set(
+                fk["referred_table"] for fk in fks_refl.get(schemaname, tablename)
+            )
+        }
+
+    async def get_fks_graph(self, start_model: type[SQLALCHEMY_MODEL_TYPE]):
+        graph = await self.get_fk_for_table(start_model)
+
+        while True:
+            for fks in graph.values():
+                for fk in fks:
+                    graph.update({fk: await self.get_fk_for_table(fk)})
+
+    async def get_count_of_models(self) -> type[SQLALCHEMY_MODEL_TYPE]:
+        return len(BaseModel.__subclasses__())
