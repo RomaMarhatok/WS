@@ -26,10 +26,6 @@ async def test_get_instance(repository_role_fixture: "GenericRepository[Roles]")
     role = await repository_role_fixture.get(roles[0].uuididf)
     async with repository_role_fixture.session_factory() as session:
         role = await session.merge(role)
-
-        print("A", type(role.awaitable_attrs))
-        # users = await role.users
-        # print(users)
     assert role is not None
     assert roles[0].uuididf == role.uuididf
 
