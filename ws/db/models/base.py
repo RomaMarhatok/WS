@@ -5,9 +5,10 @@ from sqlalchemy import MetaData, Integer, UUID, TIMESTAMP, func
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, Mapper
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.relationships import RelationshipProperty
+from sqlalchemy.ext.asyncio import AsyncAttrs
 
 
-class BaseModel(DeclarativeBase):
+class BaseModel(AsyncAttrs, DeclarativeBase):
     metadata = MetaData()
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -38,7 +39,7 @@ class BaseModel(DeclarativeBase):
     @classmethod
     def _get_relationships_graph(
         cls,
-        initial_dict: dict[type[Self], list[RelationshipProperty[Any]]],
+        initial_dict: dict[type["BaseModel"], list[RelationshipProperty[Any]]],
     ):
         if cls not in initial_dict:
             initial_dict.update({cls: cls.get_model_relationships()})
@@ -52,7 +53,9 @@ class BaseModel(DeclarativeBase):
         return initial_dict
 
     @classmethod
-    def get_relationships_graph(cls):
+    def get_relationships_graph(
+        cls,
+    ) -> dict[type["BaseModel"], list[RelationshipProperty[Any]]]:
         relationships_graph: dict[Self, list] = {cls: cls.get_model_relationships()}
         relationships_graph.update(cls._get_relationships_graph(relationships_graph))
         return relationships_graph

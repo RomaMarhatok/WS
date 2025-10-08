@@ -8,7 +8,6 @@ if TYPE_CHECKING:
     from ws.db.models import (
         ItemTypes,
         CharacteristicsItems,
-        Warehouses,
     )
 
 
@@ -21,10 +20,7 @@ class Items(BaseModel):
         ForeignKey("item_types.uuididf", onupdate="CASCADE", ondelete="SET NULL"),
         nullable=True,
     )
-    item_type: Mapped["ItemTypes"] = relationship("ItemTypes", back_populates="items")
+    item_type: Mapped["ItemTypes"] = relationship()
     item_characteristics: Mapped[list["CharacteristicsItems"]] = relationship(
         "CharacteristicsItems", back_populates="items"
-    )
-    warehouses: Mapped[list["Warehouses"]] = relationship(
-        secondary="warehouses_items", back_populates="items"
     )

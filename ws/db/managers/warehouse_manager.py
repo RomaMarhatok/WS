@@ -16,11 +16,3 @@ class WarehousesManager(BaseManager):
     async def get_warehouse_items(self, request_data: dict):
         repo = self.get_repository(Warehouses)
         repo.find().by().attach().attach()
-        # repo.find
-        #     Items,
-        #     # ,
-        #     # [joinedload(Warehouses.items).joinedload(Items.item_type)],
-        # )
-        # .by(request_data)
-        # .attach(Warehouses.items)
-        # .attach(Items.item_type)

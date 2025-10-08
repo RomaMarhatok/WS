@@ -1,6 +1,6 @@
 from sqlalchemy import String
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from ws.db.models.base import BaseModel
+from .base import BaseModel
 
 from typing import TYPE_CHECKING
 

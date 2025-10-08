@@ -1,11 +1,11 @@
 import uuid
-from ws.db.models.base import BaseModel
+from typing import TYPE_CHECKING
 from sqlalchemy import UUID, ForeignKey, String
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from typing import TYPE_CHECKING
+from ws.db.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from ws.db.models import Items, WarehouseItems
+    from ws.db.models import WarehouseItems
 
 
 class Warehouses(BaseModel):
@@ -22,7 +22,4 @@ class Warehouses(BaseModel):
     )
     warehouse_items: Mapped[list["WarehouseItems"]] = relationship(
         back_populates="warehouses", viewonly=True
-    )
-    items: Mapped[list["Items"]] = relationship(
-        secondary="warehouses_items", back_populates="warehouses"
     )
