@@ -1,10 +1,10 @@
 import uuid
 from abc import ABC
 from functools import lru_cache
-from typing import Generic, get_args, Type, Iterable, Self
-from sqlalchemy import update, Select
-from sqlalchemy.orm import joinedload
+from typing import Generic, get_args, Type
+from sqlalchemy import Update, Select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql import ColumnExpressionArgument
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from ws.db.repository.exceptions import (
     EntityNotFoundException,
@@ -14,14 +14,11 @@ from ws.db.repository.exceptions import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
-from sqlalchemy.orm.relationships import RelationshipProperty
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 
 class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
-        self._stmt = None
         self.model = self._get_entity_class()
         self.session_factory = session_factory
 
@@ -41,7 +38,7 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
         async with self.session_factory() as session:
             try:
                 stmt = (
-                    update(self.model)
+                    Update(self.model)
                     .where(self.model.uuididf == dto.uuididf)
                     .values(**dto.model_dump())
                     .returning(self.model)
@@ -69,56 +66,33 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             await session.commit()
 
     async def get_batch(
-        self,
+        self, limit: int = 10, offset: int = 0
     ) -> list[SQLALCHEMY_MODEL_TYPE]:
         async with self.session_factory() as session:
-            stmt = Select(self.model)
-            return (await session.execute(stmt)).scalars()
+            stmt = Select(self.model).limit(limit).offset(offset)
+            return (await session.execute(stmt)).scalars().all()
 
-    async def _create_where_condition(self, **kwargs) -> list:
-        if len(kwargs.items()) == 0:
-            raise ValueError("Expected at least on keyword argument")
-        filters = []
-        for k, v in kwargs.items():
-            try:
-                filters.append(getattr(self.model, k) == v)
-            except AttributeError:
-                raise AttributeError(
-                    f"Model {self.model.__name__} doesn't have how field '{k}'"
-                )
-        return filters
-
-    async def get(
-        self,
-        selectable: Iterable[InstrumentedAttribute | list[type[SQLALCHEMY_MODEL_TYPE]]],
-        where_conditions: dict,
-        passing_relation: list[RelationshipProperty] = None,
-    ) -> SQLALCHEMY_MODEL_TYPE:
-        conditions = await self._create_where_condition(**where_conditions)
-        stmt = await self._get(
-            selectable, where_conditions=conditions, passing_relation=passing_relation
-        )
+    async def get(self, uuididf: uuid.UUID) -> SQLALCHEMY_MODEL_TYPE:
         async with self.session_factory() as session:
+            stmt = Select(self.model).where(self.model.uuididf == uuididf)
             entity = (await session.execute(stmt)).scalar_one_or_none()
             if entity is None:
                 raise EntityNotFoundException(
-                    f"Entity {self.model.__name__}"
-                    + f" with values {",".join(f"({k} == {v})" for k, v in conditions.items())}"  # noqa
-                    + "not found"
+                    f"Entity {self.model.__name__} with UUID {uuididf} not found"
                 )
             return entity
 
-    async def search(self, searched_models, condition_pramas, attached_relationsips):
-        pass
-
-    async def find(self):
-        pass
-
-    async def by(self, **kwargs) -> Self:
-        return self
-
-    async def attach(self, relation: RelationshipProperty) -> Self:
-        return self
+    async def find(
+        self,
+        *filters: ColumnExpressionArgument[bool],
+        get_first: bool = False,
+    ) -> list[SQLALCHEMY_MODEL_TYPE] | SQLALCHEMY_MODEL_TYPE:
+        async with self.session_factory() as session:
+            stmt = Select(self.model).where(*filters)
+            entities = (await session.execute(stmt)).scalars()
+            if get_first:
+                return entities.first()
+            return entities.all()
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -135,19 +109,6 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             ForeignKeyViolationError: ForeignKeyNotExist,
             UniqueViolationError: EntityAlreadyExistException,
         }
-        if exc.orig.__cause__ not in integrity_error_map:
+        if type(exc.orig.__cause__) not in integrity_error_map:
             raise CouldNotCreateEntityException from exc
-        raise integrity_error_map[exc.orig.__cause__](error_msg) from exc
-
-    async def _get(
-        self,
-        selectable: Iterable[InstrumentedAttribute | list[type[SQLALCHEMY_MODEL_TYPE]]],
-        where_conditions: list = None,
-        passing_relation: list[RelationshipProperty] = None,
-    ) -> Select:
-        stmt = Select(*selectable)
-        if passing_relation is not None:
-            stmt = stmt.options(*passing_relation)
-        if where_conditions is not None:
-            stmt = stmt.where(*where_conditions)
-        return stmt
+        raise integrity_error_map[type(exc.orig.__cause__)](error_msg) from exc
