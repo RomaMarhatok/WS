@@ -21,8 +21,17 @@ async def test_get_batch(repository_role_fixture: "GenericRepository[Roles]"):
 
 
 @pytest.mark.asyncio
+async def test_get_batch_with_limit(
+    repository_role_fixture: "GenericRepository[Roles]",
+):
+    batch_limit = 1
+    roles = await repository_role_fixture.get_batch(limit=batch_limit)
+    assert len(roles) == batch_limit
+
+
+@pytest.mark.asyncio
 async def test_get_instance(repository_role_fixture: "GenericRepository[Roles]"):
-    roles = await repository_role_fixture.get_batch()
+    roles = await repository_role_fixture.get_batch(limit=1)
     role = await repository_role_fixture.get(roles[0].uuididf)
     async with repository_role_fixture.session_factory() as session:
         role = await session.merge(role)

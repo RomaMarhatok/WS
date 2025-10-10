@@ -2,7 +2,7 @@ import uuid
 from abc import ABC
 from functools import lru_cache
 from typing import Generic, get_args, Type
-from sqlalchemy import Update, Select
+from sqlalchemy import Update, Select, Delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import ColumnExpressionArgument
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
@@ -11,6 +11,7 @@ from ws.db.repository.exceptions import (
     CouldNotCreateEntityException,
     ForeignKeyNotExist,
     EntityAlreadyExistException,
+    ForeignKeyRestrictException,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
@@ -54,16 +55,31 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             await session.commit()
             return entity
 
-    async def delete(self, uuididf: uuid.UUID) -> None:
+    async def delete(
+        self, entity_or_uuididf: uuid.UUID | SQLALCHEMY_MODEL_TYPE
+    ) -> bool:
+        entity_uuididf = entity_or_uuididf
         async with self.session_factory() as session:
-            q = Select(self.model).where(self.model.uuididf == uuididf)
-            entity = (await session.execute(q)).scalar_one_or_none()
-            if entity is None:
-                raise EntityNotFoundException(
-                    f"Entity {self.model.__name__} with UUID {uuididf} not found"
-                )
-            await session.delete(entity)
+            if isinstance(entity_or_uuididf, self.model):
+                entity_uuididf = entity_or_uuididf.uuididf
+            q = (
+                Delete(self.model)
+                .where(self.model.uuididf == entity_uuididf)
+                .returning(self.model.uuididf)
+            )
+            try:
+                deleted_uuididf = (await session.execute(q)).scalar_one_or_none()
+                if deleted_uuididf is None:
+
+                    raise EntityNotFoundException(
+                        f"Entity {self.model.__name__} with"
+                        + f"UUID {entity_uuididf} not found"
+                    )
+            except IntegrityError as exc:
+                if isinstance(exc.orig.__cause__, ForeignKeyViolationError):
+                    raise ForeignKeyRestrictException(str(exc.orig))
             await session.commit()
+            return deleted_uuididf is not None
 
     async def get_batch(
         self, limit: int = 10, offset: int = 0

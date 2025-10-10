@@ -2,6 +2,10 @@ class ForeignKeyNotExist(Exception):
     pass
 
 
+class ForeignKeyRestrictException(Exception):
+    pass
+
+
 class CouldNotCreateEntityException(Exception):
     pass
 
