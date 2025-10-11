@@ -1,11 +1,14 @@
 import uuid
 from abc import ABC
 from functools import lru_cache
-from typing import Generic, get_args, Type
+from typing import Generic, get_args, Type, Any
 from sqlalchemy import Update, Select, Delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import ColumnExpressionArgument
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
+from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
 from ws.db.repository.exceptions import (
     EntityNotFoundException,
     CouldNotCreateEntityException,
@@ -13,8 +16,6 @@ from ws.db.repository.exceptions import (
     EntityAlreadyExistException,
     ForeignKeyRestrictException,
 )
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
 
 
 class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
@@ -70,7 +71,6 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             try:
                 deleted_uuididf = (await session.execute(q)).scalar_one_or_none()
                 if deleted_uuididf is None:
-
                     raise EntityNotFoundException(
                         f"Entity {self.model.__name__} with"
                         + f"UUID {entity_uuididf} not found"
@@ -88,27 +88,47 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
             stmt = Select(self.model).limit(limit).offset(offset)
             return (await session.execute(stmt)).scalars().all()
 
-    async def get(self, uuididf: uuid.UUID) -> SQLALCHEMY_MODEL_TYPE:
+    async def get(
+        self,
+        uuididf: uuid.UUID,
+        *selected_fields: InstrumentedAttribute,
+    ) -> SQLALCHEMY_MODEL_TYPE | list[Any] | Any:
         async with self.session_factory() as session:
-            stmt = Select(self.model).where(self.model.uuididf == uuididf)
-            entity = (await session.execute(stmt)).scalar_one_or_none()
-            if entity is None:
-                raise EntityNotFoundException(
-                    f"Entity {self.model.__name__} with UUID {uuididf} not found"
-                )
-            return entity
+            stmt = (
+                Select(self.model)
+                if len(selected_fields) == 0
+                else Select(*selected_fields)
+            )
+            stmt = stmt.where(self.model.uuididf == uuididf)
+            result = await session.execute(stmt)
+            if len(selected_fields) == 0:
+                entity = result.scalar_one_or_none()
+                if entity is None:
+                    raise EntityNotFoundException(
+                        f"Entity {self.model.__name__} with UUID {uuididf} not found"
+                    )
+                return entity
+            else:
+                return result.all() if len(selected_fields) > 1 else result.scalar()
 
     async def find(
         self,
         *filters: ColumnExpressionArgument[bool],
+        selected_fields: tuple[InstrumentedAttribute] | InstrumentedAttribute = None,
         get_first: bool = False,
-    ) -> list[SQLALCHEMY_MODEL_TYPE] | SQLALCHEMY_MODEL_TYPE:
+    ) -> list[SQLALCHEMY_MODEL_TYPE] | SQLALCHEMY_MODEL_TYPE | list[Any]:
         async with self.session_factory() as session:
-            stmt = Select(self.model).where(*filters)
-            entities = (await session.execute(stmt)).scalars()
-            if get_first:
-                return entities.first()
-            return entities.all()
+            stmt = (
+                Select(self.model)
+                if selected_fields is None
+                else Select(*selected_fields)
+            )
+            stmt = stmt.where(*filters)
+            result = await session.execute(stmt)
+
+            if selected_fields is None:
+                return result.scalars().first() if get_first else result.scalars().all()
+            return result.all()
 
     @classmethod
     @lru_cache(maxsize=1)

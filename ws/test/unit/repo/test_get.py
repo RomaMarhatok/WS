@@ -40,7 +40,30 @@ async def test_get_instance(repository_role_fixture: "GenericRepository[Roles]")
 
 
 @pytest.mark.asyncio
-async def test_get_with_error(
+async def test_get_with_sleect_one_field(
+    repository_role_fixture: "GenericRepository[Roles]",
+):
+    roles = await repository_role_fixture.get_batch(limit=1)
+    role = roles[0]
+    rolename = await repository_role_fixture.get(role.uuididf, Roles.rolename)
+    assert role.rolename == rolename
+
+
+@pytest.mark.asyncio
+async def test_get_with_selected_fields(
+    repository_role_fixture: "GenericRepository[Roles]",
+):
+    roles = await repository_role_fixture.get_batch(limit=1)
+    role = roles[0]
+    result = await repository_role_fixture.get(
+        role.uuididf, Roles.rolename, Roles.uuididf, Roles.created_at
+    )
+    assert len(result) == 1
+    assert len(result[0]) == 3
+
+
+@pytest.mark.asyncio
+async def test_get_not_exist_entity(
     repository_role_fixture: "GenericRepository[Roles]",
     not_exist_uuid: uuid.UUID = uuid.uuid4(),
 ):
