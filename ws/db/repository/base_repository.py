@@ -116,7 +116,12 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
         *filters: ColumnExpressionArgument[bool],
         selected_fields: tuple[InstrumentedAttribute] | InstrumentedAttribute = None,
         get_first: bool = False,
+        get_flat_result: bool = False,
     ) -> list[SQLALCHEMY_MODEL_TYPE] | SQLALCHEMY_MODEL_TYPE | list[Any]:
+        if selected_fields is None and get_flat_result:
+            raise ValueError(
+                "You can't call get_falt_reuslt without passing selected_fields argument"
+            )
         async with self.session_factory() as session:
             stmt = (
                 Select(self.model)
@@ -128,7 +133,13 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
 
             if selected_fields is None:
                 return result.scalars().first() if get_first else result.scalars().all()
-            return result.all()
+            else:
+                if get_first:
+                    return result.first()
+                if get_flat_result:
+                    return [item for row in result for item in row]
+                else:
+                    return result.all()
 
     @classmethod
     @lru_cache(maxsize=1)
