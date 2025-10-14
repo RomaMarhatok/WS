@@ -1,5 +1,6 @@
 import uuid
 from ws.dto import UserDTO
+from ws.dto.role import RoleNameEnum
 from ws.db import models
 from ws.db.managers.manager import BaseManager
 from ws.api.schemas import POSTUserRequest
@@ -17,17 +18,16 @@ class UserManager(BaseManager):
     """
 
     async def save_user(self, user_data: POSTUserRequest) -> None:
-        base_user_role: models.Roles = await self.get_repository(models.Roles).get(
-            rolename="base_user"
+        (base_user_role_uuididf,) = await self.get_repository(models.Roles).find(
+            models.roles.Roles.rolename == RoleNameEnum.BASE_USER,
+            selected_fields=(models.Roles.uuididf),
+            get_first=True,
+            get_flat_result=True,
         )
         dto = UserDTO(
             username=user_data.username,
             password=user_data.password,
-            role_uuididf=base_user_role.uuididf,
+            role_uuididf=base_user_role_uuididf,
             uuididf=uuid.uuid4(),
         )
         await self.get_repository(models.Users).save(dto)
-
-    async def get_user(self, **kwargs) -> UserDTO:
-        user: models.Users = await self.get_repository(models.Users).get(**kwargs)
-        return UserDTO.from_instance(user)
