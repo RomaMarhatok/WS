@@ -38,10 +38,5 @@ class CharacteristicsItems(BaseModel):
         nullable=True,
         index=True,
     )
-    characteristics: Mapped["Characteristics"] = relationship(
-        "Characteristics", back_populates="characteristics_item"
-    )
-
-    items: Mapped[list["Items"]] = relationship(
-        "Items", back_populates="item_characteristics"
-    )
+    characteristics: Mapped["Characteristics"] = relationship()
+    items: Mapped[list["Items"]] = relationship(back_populates="item_characteristics")

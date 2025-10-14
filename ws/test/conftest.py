@@ -35,6 +35,11 @@ def async_session_factory(
     return get_session_factory(db_config)
 
 
+@pytest.fixture(scope="session")
+def alembic_config(db_config: AbstractDBConfig) -> Config:
+    return alembic_config_from_url(db_url=db_config.get_connection_string())
+
+
 @pytest_asyncio.fixture(scope="session")
 async def migrated_async_session_factory(db_config: AbstractDBConfig, alembic_config):
     try:
@@ -50,8 +55,3 @@ async def migrated_async_session_factory(db_config: AbstractDBConfig, alembic_co
 async def db_session_factory(migrated_async_session_factory):
     await fake_db_init(migrated_async_session_factory)
     yield migrated_async_session_factory
-
-
-@pytest.fixture(scope="session")
-def alembic_config(db_config: AbstractDBConfig) -> Config:
-    return alembic_config_from_url(db_url=db_config.get_connection_string())

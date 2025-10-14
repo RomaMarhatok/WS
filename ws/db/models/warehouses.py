@@ -1,8 +1,8 @@
 import uuid
-from ws.db.models.base import BaseModel
+from typing import TYPE_CHECKING
 from sqlalchemy import UUID, ForeignKey, String
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from typing import TYPE_CHECKING
+from ws.db.models.base import BaseModel
 
 if TYPE_CHECKING:
     from ws.db.models import WarehouseItems
@@ -21,5 +21,5 @@ class Warehouses(BaseModel):
         nullable=True,
     )
     warehouse_items: Mapped[list["WarehouseItems"]] = relationship(
-        "WarehouseItems", back_populates="warehouses"
+        back_populates="warehouses", viewonly=True
     )

@@ -23,4 +23,4 @@ class Users(BaseModel):
         ),
         nullable=False,
     )
-    role: Mapped["Roles"] = relationship("Roles", back_populates="users")
+    role: Mapped["Roles"] = relationship(back_populates="users")
