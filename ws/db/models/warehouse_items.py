@@ -21,6 +21,8 @@ class WarehouseItems(BaseModel):
         nullable=False,
     )
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # backrefs
     warehouses: Mapped["Warehouses"] = relationship(
         back_populates="warehouse_items",
         viewonly=True,

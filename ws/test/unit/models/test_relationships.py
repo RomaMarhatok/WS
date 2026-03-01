@@ -9,7 +9,7 @@ from ws.db.models import (
     ItemTypes,
 )
 from sqlalchemy.orm.relationships import RelationshipProperty
-from ws.db.types import SQLALCHEMY_MODEL_TYPE
+from ws.enums.types import SQLALCHEMY_MODEL_TYPE
 
 
 def normalize_dict(

@@ -1,4 +1,3 @@
-from ws.config import AbstractDBConfig
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncEngine,
@@ -6,18 +5,17 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.pool import NullPool
+from config import UrlCreatorProtocol
 
 
-def get_async_engine(db_config: AbstractDBConfig) -> AsyncEngine:
-    return create_async_engine(
-        db_config.get_connection_string(), poolclass=NullPool, echo=True
-    )
+def get_async_engine(db_config: UrlCreatorProtocol) -> AsyncEngine:
+    return create_async_engine(db_config.db_url, poolclass=NullPool, echo=True)
 
 
-def get_session_factory(
-    db_config: AbstractDBConfig,
+def get_async_session_factory(
+    db_config: UrlCreatorProtocol,
 ) -> async_sessionmaker[AsyncSession]:
-    async_engine = get_async_engine(db_config=db_config)
+    async_engine = get_async_engine(db_config)
     session_factory = async_sessionmaker(
         bind=async_engine,
         class_=AsyncSession,

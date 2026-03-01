@@ -9,6 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncAttrs
 
 
 class BaseModel(AsyncAttrs, DeclarativeBase):
+    """
+    Base model which represent whole base fields for each model
+    """
+
     metadata = MetaData()
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

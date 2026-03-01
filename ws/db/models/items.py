@@ -20,6 +20,8 @@ class Items(BaseModel):
         ForeignKey("item_types.uuididf", onupdate="CASCADE", ondelete="SET NULL"),
         nullable=True,
     )
+
+    # backrefs
     item_type: Mapped["ItemTypes"] = relationship()
     item_characteristics: Mapped[list["CharacteristicsItems"]] = relationship(
         "CharacteristicsItems", back_populates="items"

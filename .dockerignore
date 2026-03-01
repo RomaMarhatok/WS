@@ -1,0 +1,10 @@
+.env
+.vscode
+poetry.lock
+readme.md
+.python-version
+.git
+.gitignore
+__pycache__
+.venv
+pgdata

@@ -1,5 +1,5 @@
 import pytest
-from ws.db.repository.base_repository import GenericRepository
+from ws.db.repository._generic_repository import GenericRepository
 from ws.db.models import Roles, Users
 
 

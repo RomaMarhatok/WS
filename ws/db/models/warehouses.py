@@ -20,6 +20,8 @@ class Warehouses(BaseModel):
         ),
         nullable=True,
     )
+
+    # backrefs
     warehouse_items: Mapped[list["WarehouseItems"]] = relationship(
         back_populates="warehouses", viewonly=True
     )

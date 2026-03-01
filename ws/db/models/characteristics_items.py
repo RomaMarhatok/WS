@@ -10,6 +10,10 @@ if TYPE_CHECKING:
 
 
 class CharacteristicsItems(BaseModel):
+    """
+    the characteristics_items table stores the values of specific item characteristics
+    """
+
     __tablename__ = "characteristics_items"
     characteristic_uuiidf: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -38,5 +42,7 @@ class CharacteristicsItems(BaseModel):
         nullable=True,
         index=True,
     )
+
+    # backrefs
     characteristics: Mapped["Characteristics"] = relationship()
     items: Mapped[list["Items"]] = relationship(back_populates="item_characteristics")

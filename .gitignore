@@ -1,7 +1,10 @@
+#pgsql
+pgdata
+#env vars
+.env
+.venv
 #vscode
 .vscode
-#poetry
-poetry.lock
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

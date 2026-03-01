@@ -11,4 +11,6 @@ if TYPE_CHECKING:
 class OrderStatuses(BaseModel):
     __tablename__ = "order_statuses"
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+
+    # backrefs
     orders: Mapped[list["Orders"]] = relationship(back_populates="order_status")
