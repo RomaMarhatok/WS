@@ -1,47 +1,41 @@
 import uuid
+from abc import ABC
 from functools import lru_cache
-from typing import Generic, get_args
+from typing import Generic, get_args, Type
 from sqlalchemy import update, Select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
-from abc import ABC
-from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
-from ws.db.exceptions import (
+from ws.db.repository.exceptions import (
     EntityNotFoundException,
     CouldNotCreateEntityException,
     ForeignKeyNotExist,
     EntityAlreadyExistException,
 )
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from ws.db.types import SQLALCHEMY_MODEL_TYPE, PYDANTIC_SCHEMA_TYPE
 
 
 class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
 
-    def __init__(self, session: AsyncSession):
-        self.model = self._get_entity_classes()
-        self.session = session
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self._stmt = None
+        self.model = self._get_entity_class()
+        self.session_factory = session_factory
 
     async def save(self, dto: PYDANTIC_SCHEMA_TYPE) -> SQLALCHEMY_MODEL_TYPE:
-        async with self.session:
+        async with self.session_factory() as session:
             try:
                 entity = self.model(**dto.model_dump())
-                self.session.add(entity)
-                await self.session.commit()
-                await self.session.refresh(entity)
+                session.add(entity)
+                await session.commit()
+                await session.refresh(entity)
                 return entity
             except IntegrityError as exc:
-                await self.session.rollback()
-                error_msg: str = exc.args[0]
-                if "DETAIL" in error_msg:
-                    error_msg = error_msg[error_msg.find("DETAIL") :]
-                if isinstance(exc.orig.__cause__, ForeignKeyViolationError):
-                    raise ForeignKeyNotExist(error_msg)
-                if isinstance(exc.orig.__cause__, UniqueViolationError):
-                    raise EntityAlreadyExistException(error_msg)
-                raise CouldNotCreateEntityException from exc
+                await session.rollback()
+                self._exception_handler(exc)
 
     async def update(self, dto: PYDANTIC_SCHEMA_TYPE) -> SQLALCHEMY_MODEL_TYPE:
-        async with self.session:
+        async with self.session_factory() as session:
             try:
                 stmt = (
                     update(self.model)
@@ -49,78 +43,84 @@ class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
                     .values(**dto.model_dump())
                     .returning(self.model)
                 )
-                entity = (await self.session.execute(stmt)).scalar_one_or_none()
+                entity = (await session.execute(stmt)).scalar_one_or_none()
             except IntegrityError as exc:
-                await self.session.rollback()
-                error_msg: str = exc.args[0]
-                if "DETAIL" in error_msg:
-                    error_msg = error_msg[error_msg.find("DETAIL") :]
-                if isinstance(exc.orig.__cause__, ForeignKeyViolationError):
-                    raise ForeignKeyNotExist(error_msg)
+                await session.rollback()
+                self._exception_handler(exc)
             if entity is None:
                 raise EntityNotFoundException(
                     f"Entity {self.model.__name__} with UUID {dto.uuididf} not found"
                 )
-            await self.session.commit()
+            await session.commit()
             return entity
 
     async def delete(self, uuididf: uuid.UUID) -> None:
-        async with self.session:
+        async with self.session_factory() as session:
             q = Select(self.model).where(self.model.uuididf == uuididf)
-            entity = (await self.session.execute(q)).scalar_one_or_none()
+            entity = (await session.execute(q)).scalar_one_or_none()
             if entity is None:
                 raise EntityNotFoundException(
                     f"Entity {self.model.__name__} with UUID {uuididf} not found"
                 )
-            await self.session.delete(entity)
-            await self.session.commit()
+            await session.delete(entity)
+            await session.commit()
 
-    async def get_batch(self) -> list[SQLALCHEMY_MODEL_TYPE]:
-        async with self.session:
-            return (await self.session.execute(Select(self.model))).scalars().all()
+    async def get_batch(
+        self, limit: int = 10, offset: int = 0
+    ) -> list[SQLALCHEMY_MODEL_TYPE]:
+        async with self.session_factory() as session:
+            stmt = Select(self.model)
+            return (await session.execute(stmt)).scalars().all()
 
-    async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
-        if len(kwargs.items()) != 1:
-            raise ValueError(f"Method {self.get.__name__} accept only one argument")
-        field, value = list(kwargs.items())[0]
-        try:
-            async with self.session:
-                model_field = getattr(self.model, field)
-                stmt = Select(self.model).where(model_field == value)
-                entity = (await self.session.execute(stmt)).scalar_one_or_none()
-                if entity is None:
-                    raise EntityNotFoundException(
-                        f"Entity {self.model.__name__}"
-                        + f" with {model_field} == {value} not found"
-                    )
-                return entity
-        except AttributeError:
-            raise AttributeError(
-                f"Model {self.model.__name__} doesn't have how field '{field}'"
-            )
-
-    async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
-        if len(kwargs.items()) < 1:
-            raise AttributeError(
-                "find method must accept at least one keyword argument."
-                + "Or use get_batch() -> for get all enteties "
-                + "Or use get() method for getting element by one field"
-            )
+    async def _create_filters(self, **kwargs) -> list:
+        if len(kwargs.items()) == 0:
+            raise ValueError("Expected at least on keyword argument")
         filters = []
         for k, v in kwargs.items():
             try:
                 filters.append(getattr(self.model, k) == v)
             except AttributeError:
                 raise AttributeError(
-                    f"Model {self.model.__name__} doesn't have field how '{k}' "
+                    f"Model {self.model.__name__} doesn't have how field '{k}'"
                 )
-        stmt = Select(self.model).where(*filters)
-        entities = (await self.session.execute(stmt)).scalars().all()
-        return entities
+        return filters
+
+    async def get(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
+        filters = await self._create_filters(**kwargs)
+        async with self.session_factory() as session:
+            self.model.__tablename__
+            stmt = Select(self.model).where(*filters)
+            entity = (await session.execute(stmt)).scalar_one_or_none()
+            if entity is None:
+                raise EntityNotFoundException(
+                    f"Entity {self.model.__name__}"
+                    + f" with values {",".join(f"({k} == {v})" for k, v in kwargs.items())}"  # noqa
+                    + "not found"
+                )
+            return entity
+
+    async def find(self, **kwargs) -> list[SQLALCHEMY_MODEL_TYPE]:
+        filters = await self._create_filters(**kwargs)
+        async with self.session_factory() as session:
+            stmt = Select(self.model).where(*filters)
+            entities = (await session.execute(stmt)).scalars().all()
+            return entities
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _get_entity_classes(cls) -> SQLALCHEMY_MODEL_TYPE:
+    def _get_entity_class(cls) -> Type[SQLALCHEMY_MODEL_TYPE]:
         generic_types_of_repo = getattr(cls, "__orig_bases__")[0]
         sqlachemy_entity_class = get_args(generic_types_of_repo)[0]
         return sqlachemy_entity_class
+
+    def _exception_handler(self, exc: IntegrityError):
+        error_msg: str = exc.args[0]
+        if "DETAIL" in error_msg:
+            error_msg = error_msg[error_msg.find("DETAIL") :]
+        integrity_error_map = {
+            ForeignKeyViolationError: ForeignKeyNotExist,
+            UniqueViolationError: EntityAlreadyExistException,
+        }
+        if exc.orig.__cause__ not in integrity_error_map:
+            raise CouldNotCreateEntityException from exc
+        raise integrity_error_map[exc.orig.__cause__](error_msg) from exc

@@ -1,10 +1,14 @@
 import uuid
-from .base import BaseModel
+from ws.db.models.base import BaseModel
 from sqlalchemy import UUID, Integer, ForeignKey
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ws.db.models import Warehouses
 
 
-class WrehouseItems(BaseModel):
+class WarehouseItems(BaseModel):
     __tablename__ = "warehouses_items"
     warehouses_uuididf: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -17,3 +21,6 @@ class WrehouseItems(BaseModel):
         nullable=False,
     )
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    warehouses: Mapped["Warehouses"] = relationship(
+        "Warehouses", back_populates="warehouse_items"
+    )

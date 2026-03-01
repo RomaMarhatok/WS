@@ -1,6 +1,6 @@
-FROM python:3.14
+FROM python:3.13-slim
 
-WORKDIR /backend
+WORKDIR /ws
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONUNBUFFERED=1 \
@@ -8,15 +8,19 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
     POETRY_NO_INTERCTION=1
-RUN echo ls
 
 COPY ./pyproject.toml ./
+COPY ./README.md ./
+
 
 RUN pip install -U pip \
     && pip install poetry \
     && poetry config virtualenvs.create false \
     && poetry install
 
-COPY ./ws ./
+COPY ./ ./
+EXPOSE 5001
+CMD ["tail", "-f", "/dev/null"]
 
-EXPOSE 5000
+# ENTRYPOINT [ "sh","./ws/entrypoint.sh" ]
+
