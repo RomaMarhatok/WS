@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ws.db.models import OrderStatuses
+    from ws.db.models import OrderStatuses, Items, Warehouses, Users
 
 
 class Orders(BaseModel):
@@ -38,5 +38,8 @@ class Orders(BaseModel):
     order_status: Mapped["OrderStatuses"] = relationship(
         "OrderStatuses", back_populates="orders"
     )
+    item: Mapped["Items"] = relationship()
+    warehouse: Mapped["Warehouses"] = relationship()
+    customer: Mapped["Users"] = relationship()
     amount: Mapped[int] = mapped_column(Integer)
     description: Mapped[str] = mapped_column(Text, nullable=True)
