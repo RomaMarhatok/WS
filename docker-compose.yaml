@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: ws/Dockerfile
-      target: builder
+      target: dev
     volumes:
       - ./ws:/ws
       - ./migrations:/migrations
@@ -15,7 +15,7 @@ services:
       - POSTGRES_HOST=db
     env_file:
       - .env
-    command: ["python","/ws/main.py"]
+    command: ["python", "ws/main.py"]
     depends_on:
       - db
 

@@ -1,4 +1,4 @@
-FROM python:3.13-alpine AS builder
+FROM python:3.13-alpine AS dev
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.5 /uv /uvx /bin/
 
@@ -21,12 +21,3 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
 ENV PATH="/app/.venv/bin:$PATH"
-
-FROM python:3.13-alpine AS dev
-
-WORKDIR /ws
-
-COPY --from=builder /app/_lock/.venv .venv
-
-
-EXPOSE 8000
