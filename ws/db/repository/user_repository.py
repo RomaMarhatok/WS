@@ -29,7 +29,7 @@ class UserRepository(BaseRepository):
         async with self.session_factory() as session:
             async with session.begin():
                 try:
-                    entity = self.model(**creation_data.model_dump())
+                    entity = self._model(**creation_data.model_dump())
                     session.add(entity)
                     await session.commit()
                     await session.refresh(entity)
@@ -37,7 +37,6 @@ class UserRepository(BaseRepository):
                 except Exception as exc:
                     await session.rollback()
                     raise exc
-            await session.close()
 
     def _compare_filters(self, filters: dict[str, Any]) -> dict:
         where_clasue = {}
@@ -46,7 +45,7 @@ class UserRepository(BaseRepository):
                 raise AttributeError(f"Users model doesn't have {field} field")
             else:
                 model_field = getattr(self._model, field)
-                where_clasue.update({model_field:model_field == value})
+                where_clasue.update({model_field: model_field == value})
         return where_clasue
 
     async def get(
@@ -57,9 +56,11 @@ class UserRepository(BaseRepository):
         async with self.session_factory() as session:
             async with session.begin():
                 proccesed_filters = self._compare_filters(filters)
-                query = Select(*proccesed_filters.keys()).where(
-                    *proccesed_filters.values()
-                ).limit(lim)
+                query = (
+                    Select(*proccesed_filters.keys())
+                    .where(*proccesed_filters.values())
+                    .limit(lim)
+                )
                 entities = (await session.execute(query)).scalars().all()
                 return entities
 

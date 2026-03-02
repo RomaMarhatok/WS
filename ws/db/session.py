@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.pool import NullPool
-from config import UrlCreatorProtocol
+from .config import UrlCreatorProtocol
 
 
 def get_async_engine(db_config: UrlCreatorProtocol) -> AsyncEngine:

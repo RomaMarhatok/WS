@@ -7,8 +7,7 @@ services:
       dockerfile: ws/Dockerfile
       target: dev
     volumes:
-      - ./ws:/ws
-      - ./migrations:/migrations
+      - ./ws:/app/ws
     ports:
       - 8888:8000
     environment:

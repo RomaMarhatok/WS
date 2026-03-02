@@ -14,7 +14,7 @@ from ws.db.models import BaseModel
 config = context.config
 config.set_main_option(
     "sqlalchemy.url",
-    PsqlUrlConfig().db_url,
+    PsqlUrlConfig().db_url.render_as_string(hide_password=False),
 )
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

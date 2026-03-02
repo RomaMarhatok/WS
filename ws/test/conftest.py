@@ -1,17 +1,19 @@
-import pytest
-import pytest_asyncio
-import asyncio
 from typing import AsyncGenerator
-from dotenv import load_dotenv
+
+# libs
+import pytest
+import asyncio
+import pytest_asyncio
 from alembic.config import Config
 from alembic.command import upgrade, downgrade
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, AsyncSession
-from ws.db.session import get_async_session_factory, get_async_engine
-from ws.db.config import PsqlUrlConfig
-from ws.utils.alembic_utils import alembic_config_from_url
-from ws.test.fixtures.fake_db import fake_db_init
 
-load_dotenv(override=True)
+# app
+from ws.db.config import PsqlUrlConfig
+from ws.db.session import get_async_session_factory, get_async_engine
+from ws.utils.alembic_utils import alembic_config_from_url
+
+# from ws.test.fixtures.fake_db import fake_db_init
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +39,9 @@ def async_session_factory(
 
 @pytest.fixture(scope="session")
 def alembic_config(db_config: PsqlUrlConfig) -> Config:
-    return alembic_config_from_url(db_url=db_config.db_url)
+    return alembic_config_from_url(
+        db_url=db_config.db_url.render_as_string(hide_password=False)
+    )
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -51,7 +55,7 @@ async def migrated_async_session_factory(db_config: PsqlUrlConfig, alembic_confi
     await loop.run_in_executor(None, downgrade, alembic_config, "base")
 
 
-@pytest_asyncio.fixture(scope="session")
-async def db_session_factory(migrated_async_session_factory):
-    await fake_db_init(migrated_async_session_factory)
-    yield migrated_async_session_factory
+# @pytest_asyncio.fixture(scope="session")
+# async def db_session_factory(migrated_async_session_factory):
+#     await fake_db_init(migrated_async_session_factory)
+#     yield migrated_async_session_factory

@@ -26,4 +26,4 @@ class PsqlUrlConfig(BaseSettings):
             host=self.POSTGRES_HOST,
             database=self.POSTGRES_DB,
             port=self.POSTGRES_PORT,
-        ).render_as_string()
+        )
