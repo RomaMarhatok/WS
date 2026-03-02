@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from alembic import context
-from ws.config import DBConnectionStringController
+from ws.db.config import PsqlUrlConfig
 from ws.db.models import BaseModel
 
 # this is the Alembic Config object, which provides
@@ -14,7 +14,7 @@ from ws.db.models import BaseModel
 config = context.config
 config.set_main_option(
     "sqlalchemy.url",
-    DBConnectionStringController().get_config().get_connection_string(),
+    PsqlUrlConfig().db_url,
 )
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -1,3 +1,3 @@
-from ._generic_repository import GenericRepository
-
-__all__ = [GenericRepository]
+from .base_repository import BaseRepository
+from .user_repository import UserRepository
+__all__ = [UserRepository, BaseRepository]

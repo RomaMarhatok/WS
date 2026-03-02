@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from alembic.config import Config
 from alembic.command import upgrade, downgrade
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, AsyncSession
-from ws.db.session import get_session_factory, get_async_engine
-from ws.config import DBConnectionStringController, AbcUrlDbConfig
+from ws.db.session import get_async_session_factory, get_async_engine
+from ws.db.config import PsqlUrlConfig
 from ws.utils.alembic_utils import alembic_config_from_url
 from ws.test.fixtures.fake_db import fake_db_init
 
@@ -15,13 +15,13 @@ load_dotenv(override=True)
 
 
 @pytest.fixture(scope="session")
-def db_config() -> AbcUrlDbConfig:
-    return DBConnectionStringController().get_config()
+def db_config() -> PsqlUrlConfig:
+    return PsqlUrlConfig()
 
 
 @pytest_asyncio.fixture(scope="session")
 async def async_engine(
-    db_config: AbcUrlDbConfig,
+    db_config: PsqlUrlConfig,
 ) -> AsyncGenerator[AsyncEngine, None]:
     engine = get_async_engine(db_config)
     yield engine
@@ -30,24 +30,24 @@ async def async_engine(
 
 @pytest.fixture(scope="session")
 def async_session_factory(
-    db_config: AbcUrlDbConfig,
+    db_config: PsqlUrlConfig,
 ) -> async_sessionmaker[AsyncSession]:
-    return get_session_factory(db_config)
+    return get_async_session_factory(db_config)
 
 
 @pytest.fixture(scope="session")
-def alembic_config(db_config: AbcUrlDbConfig) -> Config:
-    return alembic_config_from_url(db_url=db_config.get_connection_string())
+def alembic_config(db_config: PsqlUrlConfig) -> Config:
+    return alembic_config_from_url(db_url=db_config.db_url)
 
 
 @pytest_asyncio.fixture(scope="session")
-async def migrated_async_session_factory(db_config: AbcUrlDbConfig, alembic_config):
+async def migrated_async_session_factory(db_config: PsqlUrlConfig, alembic_config):
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, upgrade, alembic_config, "head")
-    yield get_session_factory(db_config)
+    yield get_async_session_factory(db_config)
     await loop.run_in_executor(None, downgrade, alembic_config, "base")
 
 

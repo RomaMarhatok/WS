@@ -39,40 +39,27 @@ class UserRepository(BaseRepository):
                     raise exc
             await session.close()
 
-    def compare_selected_fields_with_model(self, selected_fields: list[str]) -> Select:
-        orm_fields = []
-        for field in selected_fields:
-            if not hasattr(self._model, field):
-                raise AttributeError(f"Users model doesn't have {field} field")
-            else:
-                orm_fields.append(field)
-        return Select(*orm_fields)
-
-    def compare_filters(self, filters: dict[str, Any]) -> Select:
-        where_clasue = []
+    def _compare_filters(self, filters: dict[str, Any]) -> dict:
+        where_clasue = {}
         for field, value in filters.items():
             if not hasattr(self._model, field):
                 raise AttributeError(f"Users model doesn't have {field} field")
             else:
-                where_clasue.append(getattr(Users, field) == value)
+                model_field = getattr(self._model, field)
+                where_clasue.update({model_field:model_field == value})
         return where_clasue
 
     async def get(
         self,
         filters: UserGetDTO,
         lim: int = 10,
-        selected_fields: list[str] = None,
     ) -> list[Users]:
         async with self.session_factory() as session:
             async with session.begin():
-                base_stmt = (
-                    Select(self._model)
-                    if selected_fields is None
-                    else self.compare_selected_fields_with_model(selected_fields)
-                )
-                query = base_stmt.where(
-                    self.compare_filters(filters.model_dump()).limit(lim)
-                )
+                proccesed_filters = self._compare_filters(filters)
+                query = Select(*proccesed_filters.keys()).where(
+                    *proccesed_filters.values()
+                ).limit(lim)
                 entities = (await session.execute(query)).scalars().all()
                 return entities
 
