@@ -25,9 +25,8 @@ def upgrade() -> None:
     op.create_table(
         "warehouses",
         sa.Column("warehouse_name", sa.String(length=200), nullable=False),
-        sa.Column("warehouse_worker_uuididf", sa.UUID(), nullable=True),
+        sa.Column("warehouse_worker_id", sa.Integer(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("uuididf", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
@@ -41,13 +40,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["warehouse_worker_uuididf"],
-            ["users.uuididf"],
+            ["warehouse_worker_id"],
+            ["users.id"],
             onupdate="CASCADE",
             ondelete="SET NULL",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("uuididf"),
     )
     op.create_index(
         op.f("ix_warehouses_warehouse_name"),

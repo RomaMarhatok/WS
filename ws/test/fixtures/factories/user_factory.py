@@ -12,16 +12,13 @@ class UserFactory(BaseFactory):
         return Users
 
     async def create(self):
-        uuididfs = self.generate_uuid_collection(self.model.__tablename__, 5)
         users = [
             self.model(
-                uuididf=uuididf,
                 username=fake.user_name(),
                 password=fake.password(length=8),
-                role_uuididf=choice(
-                    list(self.get_collection().get(Roles.__tablename__))
-                ),
+                role_uuididf=choice(self.get_model_cached_ids(Roles.__tablename__)),
             )
-            for uuididf in uuididfs
+            for _ in range(5)
         ]
-        await self.save_instances(users)
+        user_ids = await self.save_instances(users)
+        self.models_cache_ids.update({self.model.__name__: user_ids})

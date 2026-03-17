@@ -20,7 +20,3 @@ class UserGetDTO(BaseModel):
     username: str
     password: str
     role_uuididf: uuid.UUID = Field(default=None)
-
-    def __post_init__(self):
-        if not self.username and not self.password and self.role_uuididf is None:
-            raise AttributeError("at least one argument must being set")

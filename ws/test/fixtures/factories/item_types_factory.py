@@ -8,13 +8,10 @@ class ItemTypesFactory(BaseFactory):
         self.item_types = ["pipes", "gears", "printers"]
 
     @property
-    def model(self):
+    def model(self) -> ItemTypes:
         return ItemTypes
 
-    async def create(self):
-        uuididfs = self.generate_uuid_collection(self.model.__tablename__, 3)
-        items = [
-            ItemTypes(uuididf=uuididf, name=item_type_name)
-            for uuididf, item_type_name in zip(uuididfs, self.item_types)
-        ]
-        await self.save_instances(items)
+    async def create(self) -> None:
+        items = [ItemTypes(name=item_type_name) for item_type_name in self.item_types]
+        ids = await self.save_instances(items)
+        self.models_cache_ids.update({self.model.__tablename__: ids})

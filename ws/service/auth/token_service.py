@@ -5,7 +5,7 @@ from ws.utils.date import (
     parse_datetime_to_gmt_format_str,
     parse_gmt_format_str_to_datetime,
 )
-from ws.dto import TokenDTO, TokenType
+from ws.api.v1.schemas.token import TokenDTO, TokenType
 
 
 class TokenService:

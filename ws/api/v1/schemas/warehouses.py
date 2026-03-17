@@ -1,5 +1,5 @@
 import uuid
-from ws.dto.base import BaseDBModelDTO
+from ws.api.v1.schemas.base import BaseDBModelDTO
 
 
 class WarehousesDTO(BaseDBModelDTO):

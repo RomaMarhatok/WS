@@ -26,7 +26,6 @@ def upgrade() -> None:
         "item_types",
         sa.Column("name", sa.String(length=300), nullable=False),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("uuididf", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
@@ -40,7 +39,6 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("uuididf"),
     )
     op.create_index(op.f("ix_item_types_name"), "item_types", ["name"], unique=True)
     # ### end Alembic commands ###

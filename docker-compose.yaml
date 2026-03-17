@@ -1,6 +1,6 @@
 name: WS_DOCKER
 services:
-  note-app:
+  api-app:
     container_name: wsAPI
     build:
       context: .
@@ -12,21 +12,41 @@ services:
       - 8888:8000
     environment:
       - POSTGRES_HOST=db
+      - TEST_POSTGRES_HOST=db-test
     env_file:
       - .env
     command: ["python", "ws/main.py"]
     depends_on:
       - db
-
+      - db-test
   db:
     image: postgres:18-alpine
     container_name: wsDB
     volumes:
       - ./pgdata:/var/lib/postgresql/data/pgdata
     ports:
-      - ${POSTGRES_PORT:?err}:5432
+      - ${POSTGRES_PORT:?err}:${POSTGRES_PORT:?err}
     env_file:
       - .env
+  db-test:
+    image: postgres:18-alpine
+    container_name: wsTestDB
+    expose:
+      - ${TEST_POSTGRES_PORT:?err}
+    volumes:
+      - ./pgdata-test:/var/lib/postgresql/data/pgdata
+    ports:
+      - ${TEST_POSTGRES_PORT:?err}:${TEST_POSTGRES_PORT:?err}
+    environment:
+      - POSTGRES_DB=${TEST_POSTGRES_DB:?err}
+      - POSTGRES_USER=${TEST_POSTGRES_USER:?err}
+      - POSTGRES_PASSWORD=${TEST_POSTGRES_PASSWORD:?err}
+      - POSTGRES_PORT=${TEST_POSTGRES_PORT:?err}
+    env_file:
+      - .env
+    command: -p ${TEST_POSTGRES_PORT:?err}
+
     
 volumes:
   pgdata:
+  pgdata-test:

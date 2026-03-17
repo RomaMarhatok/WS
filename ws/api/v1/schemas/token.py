@@ -1,4 +1,4 @@
-from ws.dto.base import BaseDTO
+from ws.api.v1.schemas.base import BaseDTO
 from enum import Enum
 from typing import Optional
 

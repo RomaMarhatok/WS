@@ -1,6 +1,4 @@
-from __future__ import annotations
-import uuid
-from sqlalchemy import String, ForeignKey, UUID
+from sqlalchemy import String, ForeignKey, Integer
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from ws.db.models.base import BaseModel
 
@@ -14,13 +12,9 @@ class Users(BaseModel):
     __tablename__ = "users"
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     password: Mapped[str] = mapped_column(String(100), unique=True)
-    role_uuididf: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey(
-            "roles.uuididf",
-            onupdate="CASCADE",
-            ondelete="RESTRICT",
-        ),
+    role_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("roles.id", onupdate="CASCADE", ondelete="RESTRICT"),
         nullable=False,
     )
 

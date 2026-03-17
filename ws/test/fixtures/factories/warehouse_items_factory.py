@@ -1,5 +1,6 @@
 from random import choice
 from ws.test.fixtures.factories import BaseFactory
+from ws.test.fixtures.factories.items import ItemsFactory
 from ws.db.models import WarehouseItems, Items, Warehouses
 
 
@@ -12,30 +13,34 @@ class WarehouseItemsFactory(BaseFactory):
         return WarehouseItems
 
     async def create(self):
-        uuididfs = list(self.generate_uuid_collection(self.model.__tablename__, 10))
+        first_warehouse_id = self.get_model_cached_ids(Warehouses.__tablename__)[0]
         first_warehouse = [
             self.model(
-                uuididf=uuididf,
-                warehouses_uuididf=list(
-                    self.get_collection().get(Warehouses.__tablename__)
-                )[0],
+                warehouses_uuididf=first_warehouse_id,
                 item_uuididf=choice(
-                    list(self.get_collection().get(Items.__tablename__))
+                    self.get_model_cached_ids(Items.__tablename__)[
+                        : len(ItemsFactory.item_names) // 2
+                    ]
                 ),
                 amount=self._get_random_number(0, 100),
             )
-            for uuididf in uuididfs[:5]
+            for _ in range(5)
         ]
         second_warehouse = [
             self.model(
-                uuididf=uuididf,
                 warehouses_uuididf=list(
-                    self.get_collection()[Warehouses.__tablename__]
+                    self.get_model_cached_ids()[Warehouses.__tablename__]
                 )[1],
-                item_uuididf=choice(list(self.get_collection()[Items.__tablename__])),
-                amount=self._get_random_number(0, 100),
+                item_uuididf=choice(
+                    list(
+                        self.get_model_cached_ids([Items.__tablename__])[
+                            (len(ItemsFactory.item_names) // 2) + 1 :
+                        ]
+                    ),
+                    amount=self._get_random_number(0, 100),
+                ),
             )
-            for uuididf in uuididfs[5:]
+            for _ in range(5)
         ]
         warehouses = first_warehouse + second_warehouse
         await self.save_instances(warehouses)

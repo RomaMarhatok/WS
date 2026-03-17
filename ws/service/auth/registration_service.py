@@ -5,7 +5,7 @@ from ws.api.exceptions.user import (
     HTTP_409_CONFLICT_USERNAME_ALREADY_EXIST,
 )
 from ws.api.schemas.user import POSTUserRequest
-from ws.db.repository.exceptions import (
+from ws.api.v1.routers.exceptions import (
     EntityAlreadyExistException,
     CouldNotCreateEntityException,
 )

@@ -26,9 +26,8 @@ def upgrade() -> None:
         "users",
         sa.Column("username", sa.String(length=100), nullable=False),
         sa.Column("password", sa.String(length=100), nullable=False),
-        sa.Column("role_uuididf", sa.UUID(), nullable=False),
+        sa.Column("role_id", sa.Integer(), nullable=False),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("uuididf", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
@@ -42,11 +41,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["role_uuididf"], ["roles.uuididf"], onupdate="CASCADE", ondelete="RESTRICT"
+            ["role_id"], ["roles.id"], onupdate="CASCADE", ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("password"),
-        sa.UniqueConstraint("uuididf"),
     )
     op.create_index(op.f("ix_users_username"), "users", ["username"], unique=True)
     # ### end Alembic commands ###

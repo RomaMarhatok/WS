@@ -1,5 +1,6 @@
 #pgsql
 pgdata
+pgdata-test
 #env vars
 .env
 .venv

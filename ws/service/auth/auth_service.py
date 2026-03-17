@@ -8,7 +8,7 @@ from ws.utils.security import verfiy_password
 from ws.service.auth.token_service import TokenService
 from ws.service.base import BaseService
 from ws.db.uow.base import BaseUOW
-from ws.db.repository.exceptions import EntityNotFoundException
+from ws.api.v1.routers.exceptions import EntityNotFoundException
 
 
 class AuthService(BaseService):

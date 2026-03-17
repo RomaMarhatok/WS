@@ -26,7 +26,6 @@ def upgrade() -> None:
         "roles",
         sa.Column("rolename", sa.String(length=100), nullable=False),
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("uuididf", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
@@ -40,7 +39,6 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("uuididf"),
     )
     op.create_index(op.f("ix_roles_rolename"), "roles", ["rolename"], unique=True)
     # ### end Alembic commands ###

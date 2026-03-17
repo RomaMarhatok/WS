@@ -8,3 +8,4 @@ readme.md
 __pycache__
 .venv
 pgdata
+pgdata-test

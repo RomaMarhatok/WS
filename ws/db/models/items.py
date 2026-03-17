@@ -1,6 +1,5 @@
-import uuid
 from ws.db.models.base import BaseModel
-from sqlalchemy import String, Text, UUID, ForeignKey
+from sqlalchemy import String, Text, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import TYPE_CHECKING
 
@@ -15,9 +14,9 @@ class Items(BaseModel):
     __tablename__ = "items"
     nomination: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     description: Mapped[str] = mapped_column(Text)
-    type: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("item_types.uuididf", onupdate="CASCADE", ondelete="SET NULL"),
+    type_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("item_types.id", onupdate="CASCADE", ondelete="SET NULL"),
         nullable=True,
     )
 

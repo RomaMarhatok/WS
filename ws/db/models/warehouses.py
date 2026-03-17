@@ -1,6 +1,5 @@
-import uuid
 from typing import TYPE_CHECKING
-from sqlalchemy import UUID, ForeignKey, String
+from sqlalchemy import Integer, ForeignKey, String
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from ws.db.models.base import BaseModel
 
@@ -11,13 +10,9 @@ if TYPE_CHECKING:
 class Warehouses(BaseModel):
     __tablename__ = "warehouses"
     warehouse_name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
-    warehouse_worker_uuididf: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey(
-            "users.uuididf",
-            onupdate="CASCADE",
-            ondelete="SET NULL",
-        ),
+    warehouse_worker_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="SET NULL"),
         nullable=True,
     )
 
