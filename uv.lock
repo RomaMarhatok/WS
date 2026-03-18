@@ -641,7 +641,6 @@ dependencies = [
     { name = "fastapi" },
     { name = "passlib" },
     { name = "pydantic-settings" },
-    { name = "pytest-asyncio" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -653,6 +652,7 @@ dev = [
     { name = "flake8" },
     { name = "pytest" },
     { name = "pytest-alembic" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
@@ -662,7 +662,6 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.133.0" },
     { name = "passlib", specifier = ">=1.7.4" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
-    { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "sqlalchemy", specifier = ">=2.0.46" },
     { name = "uvicorn", specifier = ">=0.41.0" },
 ]
@@ -674,4 +673,5 @@ dev = [
     { name = "flake8", specifier = ">=7.3.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-alembic", specifier = ">=0.12.1" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
 ]
