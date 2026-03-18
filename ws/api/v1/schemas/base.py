@@ -1,4 +1,3 @@
-import uuid
 from abc import ABC
 from typing import Self, Any, Callable
 from ws.db.models.base import BaseModel as SQLBaseModel
@@ -6,6 +5,8 @@ from pydantic import BaseModel, ValidationError
 
 
 class BaseDTO(BaseModel, ABC):
+    id: int
+
     @classmethod
     def from_instance(cls, instance: SQLBaseModel) -> Self:
         """parse fields which only need for DTO"""
@@ -54,8 +55,6 @@ class BaseDTO(BaseModel, ABC):
 
 
 class BaseDBModelDTO(BaseDTO):
-    uuididf: uuid.UUID
-
     def __eq__(self, value: SQLBaseModel):
         if not isinstance(value, SQLBaseModel):
             raise TypeError(

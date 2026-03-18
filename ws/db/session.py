@@ -1,7 +1,6 @@
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession
 
 from ws.core.config import DbConfProtocol, app_config
@@ -16,7 +15,7 @@ class SessionManager:
         self, conf: DbConfProtocol = None
     ) -> AsyncGenerator[AsyncEngine]:
         _conf = conf or self.conf
-        eng = create_async_engine(_conf, poolclass=NullPool, echo=True)
+        eng = create_async_engine(_conf.db_url, echo=True)
         yield eng
         eng.dispose()
 

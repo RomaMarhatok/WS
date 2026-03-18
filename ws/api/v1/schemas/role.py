@@ -1,4 +1,5 @@
 from enum import Enum
+from pydantic import BaseModel
 from ws.api.v1.schemas.base import BaseDBModelDTO
 
 
@@ -12,4 +13,8 @@ class RoleNameEnum(Enum):
 
 
 class RoleDTO(BaseDBModelDTO):
+    rolename: str
+
+
+class CreateRoleDTO(BaseModel):
     rolename: str

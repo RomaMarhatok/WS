@@ -1,6 +1,6 @@
 from ws.core.config import app_config, AppMode
 
-if app_config.APP_MODE is AppMode.DEV:
+if app_config.APP_MODE == AppMode.DEV.value:
     from pytest_alembic.tests import test_model_definitions_match_ddl
     from pytest_alembic.tests import test_single_head_revision
     from pytest_alembic.tests import test_up_down_consistency

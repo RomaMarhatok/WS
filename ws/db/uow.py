@@ -3,7 +3,7 @@ from ws.db.session import SessionManager
 
 
 class UnitOfWork:
-    def __init__(self, repo: GenericRepository, session_manager: SessionManager):
+    def __init__(self, repo: type[GenericRepository], session_manager: SessionManager):
         self._repo = repo
         self.session_manager = session_manager
         self.session = None

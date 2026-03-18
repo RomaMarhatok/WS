@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Generic, TypeVar, Sequence
+from typing import Generic, TypeVar, Sequence, get_args
 
 from pydantic import BaseModel as PydanticBaseModel
 
@@ -7,24 +7,31 @@ from sqlalchemy import Update, Select, Delete, Insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
+from asyncpg.exceptions import (
+    ForeignKeyViolationError,
+    UniqueViolationError,
+    RestrictViolationError,
+)
 
 from ws.db.models import BaseModel
-from ws.api.v1.routers.exceptions import NotFoundError, UniqueError, DatabaseError
+from ws.api.v1.routers.exceptions import (
+    NotFoundError,
+    UniqueError,
+    DatabaseError,
+    ConflictError,
+)
 
 SQLALCHEMY_MODEL_TYPE = TypeVar("SQLALCHEMY_MODEL_TYPE", bound=BaseModel)
-CREATE_SCHEMA_TYPE = TypeVar("CREATE_SCHEMA_TYPE", bound=PydanticBaseModel)
-UPDATE_SCHEMA_TYPE = TypeVar("UPDATE_SCHEMA_TYPE", bound=PydanticBaseModel)
+type CREATE_SCHEMA = PydanticBaseModel
+type UPDATE_SCHEMA = PydanticBaseModel
 
 
-class GenericRepository(
-    Generic[SQLALCHEMY_MODEL_TYPE, CREATE_SCHEMA_TYPE, UPDATE_SCHEMA_TYPE], ABC
-):
-    model: SQLALCHEMY_MODEL_TYPE
+class GenericRepository(Generic[SQLALCHEMY_MODEL_TYPE], ABC):
+    model: type[SQLALCHEMY_MODEL_TYPE]
 
-    def __new__(cls):
-        instance = super().__new__()
-        instance.model = getattr(cls, "__orig_bases__")[0][0]
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls)
+        instance.model = get_args(cls.__orig_bases__[0])[0]
         return instance
 
     def __init__(self, db: AsyncSession):
@@ -32,7 +39,7 @@ class GenericRepository(
 
     async def create(
         self,
-        dto: CREATE_SCHEMA_TYPE,
+        dto: CREATE_SCHEMA,
         exclude: list[str] = None,
         by_alias: bool = False,
     ) -> SQLALCHEMY_MODEL_TYPE:
@@ -58,7 +65,7 @@ class GenericRepository(
                         message=str(e),
                     ) from e
 
-    async def update(self, _id: int, dto: UPDATE_SCHEMA_TYPE) -> SQLALCHEMY_MODEL_TYPE:
+    async def update(self, _id: int, dto: UPDATE_SCHEMA) -> SQLALCHEMY_MODEL_TYPE:
         try:
             stmt = (
                 Update(self.model)
@@ -83,30 +90,64 @@ class GenericRepository(
                         message=str(e.orig),
                     ) from e
 
-    async def delete(self, _id: int):
-        stmt = Delete(self.model).where(self.model.id == _id)
-        result = await self.db.execute(stmt)
-        if result.rowcount != 1:
-            raise NotFoundError(
-                message=f"Запись {self.model.__tablename__} c uuididf {_id} не была удалена !"
-            )
-        await self.db.flush()
+    async def delete(self, _id: int) -> None:
+        try:
+            stmt = Delete(self.model).where(self.model.id == _id)
+            result = await self.db.execute(stmt)
+            if result.rowcount != 1:
+                raise NotFoundError(
+                    message=f"Запись {self.model.__tablename__} c id {_id} не была удалена !"
+                )
+            await self.db.flush()
+        except IntegrityError as e:
+            match e.orig.sqlstate:
+                case RestrictViolationError.sqlstate:
+                    raise ConflictError(
+                        f"Запись {self.model.__tablename__} c id {_id} является внешним ключем с политикой RESTRICT !"
+                    )
+                case _:
+                    raise DatabaseError(
+                        message=str(e.orig),
+                    ) from e
 
     async def get_batch(
-        self, limit: int = 10, offset: int = 0
+        self, limit: int = None, offset: int = None
     ) -> Sequence[SQLALCHEMY_MODEL_TYPE]:
         stmt = Select(self.model).limit(limit).offset(offset)
+        if limit:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get(self, _id: int, exclude: list[str] = None) -> SQLALCHEMY_MODEL_TYPE:
-        stmt = Select(self.model.group_by_fields(exclude=exclude)).where(
-            self.model.id == _id
-        )
+    async def get(self, _id: int) -> SQLALCHEMY_MODEL_TYPE:
+        stmt = Select(self.model).where(self.model.id == _id)
         result = await self.db.execute(stmt)
         obj_from_db = result.scalars().first()
         if obj_from_db is None:
             raise NotFoundError(
-                message=f"Запись {self.model.__tablename__} c uuididf {_id} не найдена!"
+                message=f"Запись {self.model.__tablename__} c id {_id} не найдена !"
+            )
+        return obj_from_db
+
+    async def get_by_column(self, **kwargs) -> SQLALCHEMY_MODEL_TYPE:
+        if not kwargs:
+            raise ValueError(
+                "Вы должны предоставить хотя бы одно поле для фильтрации !"
+            )
+        for passed_fields in kwargs.keys():
+            if passed_fields not in self.model.__table__.columns.keys():
+                raise ValueError(
+                    f"В таблице {self.model.__tablename__} не существует поля {passed_fields}!"
+                )
+
+        stmt = Select(self.model).filter_by(**kwargs)
+        result = await self.db.execute(stmt)
+        obj_from_db = result.scalars().first()
+        if obj_from_db is None:
+            raise NotFoundError(
+                message=f"Запись {self.model.__tablename__} c полями {kwargs.keys()} и"
+                "значениями {kwargs.values()} не найдена !",
             )
         return obj_from_db

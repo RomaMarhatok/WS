@@ -25,7 +25,7 @@ class BaseModel(DeclarativeBase):
         payload = []
         if not exclude:
             exclude = []
-        for columns in cls.__table__.columns:
-            if columns.key not in exclude:
-                payload.append(payload)
+        for column in cls.__table__.columns:
+            if column.key not in exclude:
+                payload.append(column)
         return payload

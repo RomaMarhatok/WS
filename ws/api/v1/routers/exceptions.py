@@ -19,7 +19,7 @@ class UniqueError(BaseError):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
             message=f"Поля переданные в модель {model_name} содержат "
-            f"неуникальные значения!",
+            "неуникальные значения!",
         )
 
 
@@ -30,4 +30,9 @@ class NotFoundError(BaseError):
 
 class DatabaseError(BaseError):
     def __init__(self, message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):
+        super().__init__(message, status_code)
+
+
+class ConflictError(BaseError):
+    def __init__(self, message, status_code=status.HTTP_409_CONFLICT):
         super().__init__(message, status_code)

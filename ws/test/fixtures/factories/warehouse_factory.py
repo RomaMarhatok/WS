@@ -6,21 +6,17 @@ from ws.test.fixtures.factories import BaseFactory
 class WarehouseFactory(BaseFactory):
     def __init__(self, session_factory):
         super().__init__(session_factory)
-        self.warehouse_names = ["warehouse-1", "warehouse-2"]
 
     @property
     def model(self):
         return Warehouses
 
-    async def create(self):
-        warehouses = [
+    async def get_instances(self):
+        warehouse_names = ["warehouse-1", "warehouse-2"]
+        return [
             self.model(
                 warehouse_name=name,
-                warehouse_worker_uuididf=choice(
-                    list(self.get_model_cached_ids(Users.__tablename__))
-                ),
+                warehouse_worker_id=choice(await self.get_model_ids(Users)),
             )
-            for name in self.warehouse_names
+            for name in warehouse_names
         ]
-        warehouse_ids = await self.save_instances(warehouses)
-        self.models_cache_ids.get({self.model.__tablename__: warehouse_ids})

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 class Orders(BaseModel):
     __tablename__ = "orders"
-    order_status_id: Mapped[int] = mapped_column(
+    status_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("order_statuses.id", onupdate="CASCADE", ondelete="SET NULL"),
         nullable=True,
@@ -34,12 +34,13 @@ class Orders(BaseModel):
         nullable=True,
         index=True,
     )
-    order_status: Mapped["OrderStatuses"] = relationship(
-        "OrderStatuses", back_populates="orders"
-    )
     amount: Mapped[int] = mapped_column(Integer)
 
     # backrefs
+    order_status: Mapped["OrderStatuses"] = relationship(
+        "OrderStatuses", back_populates="orders"
+    )
+
     item: Mapped["Items"] = relationship()
     warehouse: Mapped["Warehouses"] = relationship()
     customer: Mapped["Users"] = relationship()
