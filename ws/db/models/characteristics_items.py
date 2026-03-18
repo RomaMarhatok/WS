@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from ws.db.models import Items, Characteristics
 
 
+# TODO: Replace Values to JSON fields
 class CharacteristicsItems(BaseModel):
     """
     the characteristics_items table stores the values of specific item characteristics
